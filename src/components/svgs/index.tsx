@@ -11,6 +11,8 @@ export function OfficeIcon({ className, ...props }: SvgProps) {
 			fill="none"
 			stroke="currentColor"
 			viewBox="0 0 24 24"
+			role="img"
+			aria-label="Office"
 			{...props}
 		>
 			<path
@@ -30,6 +32,8 @@ export function UserIcon({ className, ...props }: SvgProps) {
 			fill="none"
 			stroke="currentColor"
 			viewBox="0 0 24 24"
+			role="img"
+			aria-label="User"
 			{...props}
 		>
 			<path
@@ -49,6 +53,8 @@ export function LockIcon({ className, ...props }: SvgProps) {
 			fill="none"
 			stroke="currentColor"
 			viewBox="0 0 24 24"
+			role="img"
+			aria-label="Lock"
 			{...props}
 		>
 			<path
@@ -68,6 +74,8 @@ export function EyeIcon({ className, ...props }: SvgProps) {
 			fill="none"
 			stroke="currentColor"
 			viewBox="0 0 24 24"
+			role="img"
+			aria-label="Eye"
 			{...props}
 		>
 			<path
@@ -93,6 +101,8 @@ export function EyeOffIcon({ className, ...props }: SvgProps) {
 			fill="none"
 			stroke="currentColor"
 			viewBox="0 0 24 24"
+			role="img"
+			aria-label="Eye Off"
 			{...props}
 		>
 			<path
@@ -105,6 +115,27 @@ export function EyeOffIcon({ className, ...props }: SvgProps) {
 	);
 }
 
+export function ArrowLeftIcon({ className, ...props }: SvgProps) {
+	return (
+		<svg
+			className={cn("w-5 h-5", className)}
+			fill="none"
+			stroke="currentColor"
+			viewBox="0 0 24 24"
+			role="img"
+			aria-label="Arrow Left"
+			{...props}
+		>
+			<path
+				strokeLinecap="round"
+				strokeLinejoin="round"
+				strokeWidth={2}
+				d="M10 19l-7-7m0 0l7-7m-7 7h18"
+			/>
+		</svg>
+	);
+}
+
 export function ArrowRightIcon({ className, ...props }: SvgProps) {
 	return (
 		<svg
@@ -112,6 +143,8 @@ export function ArrowRightIcon({ className, ...props }: SvgProps) {
 			fill="none"
 			stroke="currentColor"
 			viewBox="0 0 24 24"
+			role="img"
+			aria-label="Arrow Right"
 			{...props}
 		>
 			<path
@@ -132,6 +165,8 @@ export function CheckIcon({ className, ...props }: SvgProps) {
 			stroke="currentColor"
 			viewBox="0 0 24 24"
 			{...props}
+			role="img"
+			aria-label="Check"
 		>
 			<path
 				strokeLinecap="round"
@@ -151,6 +186,8 @@ export function LogoutIcon({ className, ...props }: SvgProps) {
 			stroke="currentColor"
 			viewBox="0 0 24 24"
 			{...props}
+			role="img"
+			aria-label="Logout"
 		>
 			<path
 				strokeLinecap="round"

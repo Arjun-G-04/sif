@@ -1,5 +1,5 @@
 import { officeSignIn } from "@/lib/auth";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import {
 	Card,
@@ -85,7 +85,7 @@ export function Login() {
 										<UserIcon className="text-slate-400" />
 									</div>
 									<Input
-										id="username"
+										id={useId()}
 										type="text"
 										value={username}
 										onChange={(e) =>
@@ -108,7 +108,7 @@ export function Login() {
 										<LockIcon className="text-slate-400" />
 									</div>
 									<Input
-										id="password"
+										id={useId()}
 										type={
 											showPassword ? "text" : "password"
 										}
@@ -146,7 +146,7 @@ export function Login() {
 							{/* Forgot Password */}
 							<div className="flex justify-end text-sm">
 								<a
-									href="#"
+									href="/office"
 									className="text-red-600 hover:text-red-500 transition-colors"
 								>
 									Forgot password?

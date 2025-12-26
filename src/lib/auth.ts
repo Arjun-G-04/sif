@@ -10,6 +10,7 @@ import * as z from "zod";
 import { db } from "../db";
 import { users } from "../db/schema";
 import { safeParseAndThrow } from "./utils";
+import { redirect } from "@tanstack/react-router";
 
 const getJWTSecret = createServerOnlyFn(() => {
 	if (!process.env.JWT_SECRET) {
@@ -114,3 +115,14 @@ export const officeSignOut = createServerFn({ method: "POST" }).handler(
 		setResponseHeader("Set-Cookie", cookieValue);
 	},
 );
+
+export async function requireAdmin() {
+	const authStatus = await verifyAuth();
+	if (!authStatus.authenticated || !authStatus.user.admin) {
+		throw redirect({
+			to: "/office",
+		});
+	}
+
+	return authStatus.user;
+}

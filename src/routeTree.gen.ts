@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OfficeIndexRouteImport } from './routes/office/index'
+import { Route as OfficeUserRegistrationIndexRouteImport } from './routes/office/user/registration/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +23,41 @@ const OfficeIndexRoute = OfficeIndexRouteImport.update({
   path: '/office/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OfficeUserRegistrationIndexRoute =
+  OfficeUserRegistrationIndexRouteImport.update({
+    id: '/office/user/registration/',
+    path: '/office/user/registration/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/office': typeof OfficeIndexRoute
+  '/office/user/registration': typeof OfficeUserRegistrationIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/office': typeof OfficeIndexRoute
+  '/office/user/registration': typeof OfficeUserRegistrationIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/office/': typeof OfficeIndexRoute
+  '/office/user/registration/': typeof OfficeUserRegistrationIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/office'
+  fullPaths: '/' | '/office' | '/office/user/registration'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/office'
-  id: '__root__' | '/' | '/office/'
+  to: '/' | '/office' | '/office/user/registration'
+  id: '__root__' | '/' | '/office/' | '/office/user/registration/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   OfficeIndexRoute: typeof OfficeIndexRoute
+  OfficeUserRegistrationIndexRoute: typeof OfficeUserRegistrationIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +76,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OfficeIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/office/user/registration/': {
+      id: '/office/user/registration/'
+      path: '/office/user/registration'
+      fullPath: '/office/user/registration'
+      preLoaderRoute: typeof OfficeUserRegistrationIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   OfficeIndexRoute: OfficeIndexRoute,
+  OfficeUserRegistrationIndexRoute: OfficeUserRegistrationIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
