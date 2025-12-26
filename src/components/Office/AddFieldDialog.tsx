@@ -157,7 +157,13 @@ export function AddFieldDialog({
 						<div className="space-y-2">
 							<Label>Options</Label>
 							{options.map((opt, index) => (
-								<div key={index + opt} className="flex gap-2">
+								<div
+									key={
+										index.toString() +
+										Math.random().toString()
+									}
+									className="flex gap-2"
+								>
 									<Input
 										placeholder={`Option ${index + 1}`}
 										value={opt}
