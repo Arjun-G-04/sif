@@ -1,5 +1,5 @@
-import { Home } from "@/components/Office/Home";
-import { Login } from "@/components/Office/Login";
+import { Home } from "@/components/office/home";
+import { Login } from "@/components/office/login";
 import { verifyAuth } from "@/lib/auth";
 import { createFileRoute } from "@tanstack/react-router";
 

@@ -1,6 +1,6 @@
-import { AddFieldDialog } from "@/components/Office/AddFieldDialog";
-import { FieldsView } from "@/components/Office/FieldsView";
-import { Header } from "@/components/Office/Header";
+import { AddFieldDialog } from "@/components/office/addFieldDialog";
+import { FieldsView } from "@/components/office/fieldsView";
+import { Header } from "@/components/office/header";
 import { requireAdmin } from "@/lib/auth";
 import { getFields } from "@/services/field";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";

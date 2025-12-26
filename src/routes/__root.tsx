@@ -2,7 +2,9 @@ import {
 	HeadContent,
 	Scripts,
 	createRootRouteWithContext,
+	useRouterState,
 } from "@tanstack/react-router";
+import { PendingComponent } from "@/components/pending";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 
@@ -43,12 +45,15 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+	const isLoading = useRouterState({ select: (s) => s.status === "pending" });
+
 	return (
 		<html lang="en">
 			<head>
 				<HeadContent />
 			</head>
 			<body>
+				{isLoading && <PendingComponent />}
 				{children}
 				<TanStackDevtools
 					config={{

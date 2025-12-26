@@ -37,7 +37,10 @@ export function AddFieldDialog({
 	const [name, setName] = useState("");
 	const [type, setType] = useState<FieldType>("text");
 	const [order, setOrder] = useState(0);
-	const [options, setOptions] = useState<string[]>([]);
+	const [options, setOptions] = useState<{ id: string; value: string }[]>([]);
+
+	const nameId = useId();
+	const orderId = useId();
 
 	const queryClient = useQueryClient();
 
@@ -49,7 +52,10 @@ export function AddFieldDialog({
 					type,
 					order,
 					entityType,
-					options: type === "single_select" ? options : undefined,
+					options:
+						type === "single_select"
+							? options.map((o) => o.value)
+							: undefined,
 				},
 			}),
 		onSuccess: () => {
@@ -71,12 +77,12 @@ export function AddFieldDialog({
 	}
 
 	function handleAddOption() {
-		setOptions([...options, ""]);
+		setOptions([...options, { id: crypto.randomUUID(), value: "" }]);
 	}
 
 	function handleOptionChange(index: number, value: string) {
 		const newOptions = [...options];
-		newOptions[index] = value;
+		newOptions[index].value = value;
 		setOptions(newOptions);
 	}
 
@@ -115,9 +121,9 @@ export function AddFieldDialog({
 				</DialogHeader>
 				<div className="space-y-4 py-4">
 					<div className="space-y-2">
-						<Label htmlFor="name">Field Name</Label>
+						<Label htmlFor={nameId}>Field Name</Label>
 						<Input
-							id={useId()}
+							id={nameId}
 							placeholder="e.g. Date of Birth"
 							value={name}
 							onChange={(e) => setName(e.target.value)}
@@ -144,9 +150,9 @@ export function AddFieldDialog({
 						</Select>
 					</div>
 					<div className="space-y-2">
-						<Label htmlFor="order">Display Order</Label>
+						<Label htmlFor={orderId}>Display Order</Label>
 						<Input
-							id={useId()}
+							id={orderId}
 							type="number"
 							value={order}
 							onChange={(e) => setOrder(Number(e.target.value))}
@@ -157,16 +163,10 @@ export function AddFieldDialog({
 						<div className="space-y-2">
 							<Label>Options</Label>
 							{options.map((opt, index) => (
-								<div
-									key={
-										index.toString() +
-										Math.random().toString()
-									}
-									className="flex gap-2"
-								>
+								<div key={opt.id} className="flex gap-2">
 									<Input
 										placeholder={`Option ${index + 1}`}
-										value={opt}
+										value={opt.value}
 										onChange={(e) =>
 											handleOptionChange(
 												index,

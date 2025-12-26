@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { UserIcon, ArrowRightIcon } from "@/components/svgs";
 import { Link } from "@tanstack/react-router";
-import { Header } from "./Header";
+import { Header } from "./header";
 
 export function Home({ user }: { user: AuthPayload }) {
 	return (
