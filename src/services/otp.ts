@@ -95,10 +95,10 @@ export const sendOtp = createServerFn({ method: "POST" })
 				throw new Error("Invalid email format");
 			}
 		} else if (parsedData.type === "phone") {
-			const phoneDigits = parsedData.target.replace(/\D/g, "");
-			if (phoneDigits.length < 10) {
-				throw new Error("Invalid phone number format");
-			}
+			// const phoneDigits = parsedData.target.replace(/\D/g, "");
+			// if (phoneDigits.length < 10) {
+			// 	throw new Error("Invalid phone number format");
+			// }
 		}
 
 		// Verify Turnstile token
