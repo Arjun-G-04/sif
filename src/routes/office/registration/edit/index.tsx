@@ -7,11 +7,11 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
 export const fieldsQueryOptions = queryOptions({
-	queryKey: ["fields", "users"],
-	queryFn: () => getFields({ data: { entityType: "users" } }),
+	queryKey: ["fields", "registration"],
+	queryFn: () => getFields({ data: { entityType: "registration" } }),
 });
 
-export const Route = createFileRoute("/office/user/registration/")({
+export const Route = createFileRoute("/office/registration/edit/")({
 	component: RegistrationPage,
 	loader: async ({ context }) => {
 		const user = await requireAdmin();
@@ -38,7 +38,7 @@ function RegistrationPage() {
 								Manage fields for user registration.
 							</p>
 						</div>
-						<AddFieldDialog entityType="users" />
+						<AddFieldDialog entityType="registration" />
 					</div>
 					<FieldsView fields={fields.data} />
 				</div>
