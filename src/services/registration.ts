@@ -76,6 +76,7 @@ export const submitRegistration = createServerFn({ method: "POST" })
 				const mediaDir = join(
 					process.cwd(),
 					"media",
+					"registrations",
 					String(registration.id),
 				);
 				await mkdir(mediaDir, { recursive: true });
@@ -87,7 +88,7 @@ export const submitRegistration = createServerFn({ method: "POST" })
 				await writeFile(filePath, Buffer.from(arrayBuffer));
 
 				// Store relative path
-				fieldValue = `media/${registration.id}/${fileName}`;
+				fieldValue = `media/registrations/${registration.id}/${fileName}`;
 			} else if (typeof value === "string") {
 				fieldValue = value;
 			}

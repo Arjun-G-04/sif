@@ -29,7 +29,8 @@ interface FileViewerProps {
 function getFileUrl(path: string, download = false): string {
 	const params = new URLSearchParams({ path });
 	if (download) params.set("download", "true");
-	return `/api/file?${params.toString()}`;
+	const baseUrl = (import.meta.env.VITE_BASE_URL || "").replace(/\/$/, "");
+	return `${baseUrl}/api/file?${params.toString()}`;
 }
 
 export function FieldResponsesDisplay({

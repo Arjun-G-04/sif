@@ -9,6 +9,8 @@ services:
       - db
     volumes:
       - media_data:/app/media
+    networks:
+      - synergy-custom-network
 
   db:
     image: postgres:18-alpine
@@ -24,12 +26,16 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - synergy-custom-network
 
   adminersif:
     image: adminer:5.4.1
     restart: unless-stopped
     depends_on:
       - db
+    networks:
+      - synergy-custom-network
 
   # Uncomment the following block to run migrations using the 'migrator' stage. 
   # Use --remove-orphans when re-running.

@@ -31,7 +31,7 @@ echo -e "${YELLOW}🔍 Checking if admin user exists...${NC}"
 
 # Check if running in production
 COMPOSE_OPTS=""
-if [[ "$NODE_ENV" == "production" || "$NODE_ENV" == "prod" ]]; then
+if [[ "$SCRIPT_ENV" == "production" || "$SCRIPT_ENV" == "prod" ]]; then
     echo -e "${YELLOW}🏭 Running in production mode (using compose.prod.yaml)${NC}"
     COMPOSE_OPTS="-f compose.prod.yaml"
 fi

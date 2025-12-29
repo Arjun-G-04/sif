@@ -20,7 +20,7 @@ RUN pnpm install --frozen-lockfile
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN pnpm build
+RUN pnpm build --mode prod
 
 # Migrator stage
 # This stage has the full source and devDependencies (tsx), 
