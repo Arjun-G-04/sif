@@ -7,9 +7,12 @@ import tailwindcss from '@tailwindcss/vite'
 import { nitro } from 'nitro/vite'
 
 const config = defineConfig({
+  base: '/sif/',
   plugins: [
     devtools(),
-    nitro(),
+    nitro({
+      baseURL: '/sif/',
+    }),
     // this is the plugin that enables path aliases
     viteTsConfigPaths({
       projects: ['./tsconfig.json'],

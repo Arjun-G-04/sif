@@ -1,0 +1,53 @@
+services:
+  websif:
+    build:
+      context: .
+      target: runner
+    env_file: .env.prod
+    restart: unless-stopped
+    depends_on:
+      - db
+    volumes:
+      - media_data:/app/media
+
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: db_user
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: sif
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  adminersif:
+    image: adminer:5.4.1
+    restart: unless-stopped
+    depends_on:
+      - db
+
+  # Uncomment the following block to run migrations using the 'migrator' stage. 
+  # Use --remove-orphans when re-running.
+  # migrator:
+  #   build:
+  #     context: .
+  #     target: migrator
+  #   environment:
+  #     DATABASE_URL: postgres://db_user:${DB_PASS}@db:5432/sif
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+  #   restart: "no"
+
+volumes:
+  db_data:
+  media_data:
+
+networks:
+  synergy-custom-network:
+    external: true

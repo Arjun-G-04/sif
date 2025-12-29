@@ -15,3 +15,8 @@ pnpm install
 ```bash
 pnpm dev
 ```
+
+### Production Seeding
+```bash
+(set -a; source .env; set +a; ./script/seed.sh)
+```
