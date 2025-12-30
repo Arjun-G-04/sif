@@ -1,6 +1,12 @@
-import { pgEnum, pgTable, serial, text, integer } from "drizzle-orm/pg-core";
-
-// ============ User Management ============
+import {
+	pgEnum,
+	pgTable,
+	serial,
+	text,
+	integer,
+	timestamp,
+	boolean,
+} from "drizzle-orm/pg-core";
 
 export const userRole = pgEnum("user_role", ["public", "admin"]);
 
@@ -11,7 +17,13 @@ export const users = pgTable("users", {
 	role: userRole().notNull().default("public"),
 });
 
-// ============ Dynamic Fields System ============
+export const registrations = pgTable("registrations", {
+	id: serial().primaryKey(),
+	password: text().notNull(),
+	email: text().notNull(),
+	phone: text().notNull(),
+	createdAt: timestamp("created_at").defaultNow(),
+});
 
 export const fieldType = pgEnum("field_type", [
 	"text",
@@ -20,9 +32,8 @@ export const fieldType = pgEnum("field_type", [
 	"file",
 ]);
 
-export const entityType = pgEnum("entity_type", ["users"]);
+export const entityType = pgEnum("entity_type", ["registration"]);
 
-// Admin-defined fields per entity type (e.g., entity_type = "users", "products", etc.)
 export const fields = pgTable("fields", {
 	id: serial().primaryKey(),
 	entityType: entityType("entity_type").notNull(),
@@ -31,7 +42,6 @@ export const fields = pgTable("fields", {
 	order: integer().notNull().default(0),
 });
 
-// Options for single-select fields
 export const fieldOptions = pgTable("field_options", {
 	id: serial().primaryKey(),
 	fieldId: integer("field_id")
@@ -40,7 +50,6 @@ export const fieldOptions = pgTable("field_options", {
 	value: text().notNull(),
 });
 
-// User responses - links to any entity via entity_type + entity_id
 export const fieldResponses = pgTable("field_responses", {
 	id: serial().primaryKey(),
 	entityType: entityType("entity_type").notNull(),
@@ -49,4 +58,18 @@ export const fieldResponses = pgTable("field_responses", {
 		.notNull()
 		.references(() => fields.id, { onDelete: "cascade" }),
 	value: text(), // Stores all values as text (dates as ISO strings, files as paths/URLs)
+});
+
+export const otpType = pgEnum("otp_type", ["email", "phone"]);
+
+export const otpVerifications = pgTable("otp_verifications", {
+	id: serial().primaryKey(),
+	type: otpType().notNull(),
+	target: text().notNull(), // email address or phone number
+	otpHash: text("otp_hash").notNull(),
+	expiresAt: timestamp("expires_at").notNull(),
+	attempts: integer().notNull().default(0),
+	verified: boolean().notNull().default(false),
+	turnstileToken: text("turnstile_token"), // stored for audit/debugging
+	createdAt: timestamp("created_at").defaultNow(),
 });

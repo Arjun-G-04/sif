@@ -1,8 +1,14 @@
-import { createServerFn } from "@tanstack/react-start";
-import { asc, eq } from "drizzle-orm";
+import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
+import { and, asc, eq } from "drizzle-orm";
 import * as z from "zod";
 import { db } from "../db";
-import { fields, fieldOptions, entityType, fieldType } from "../db/schema";
+import {
+	entityType,
+	fieldOptions,
+	fieldResponses,
+	fields,
+	fieldType,
+} from "../db/schema";
 import { requireAdmin } from "../lib/auth";
 import { safeParseAndThrow } from "../lib/utils";
 
@@ -63,13 +69,41 @@ const GetFieldsInput = z.object({
 	entityType: z.enum(entityType.enumValues, "Invalid entity type"),
 });
 
-export const getFields = createServerFn({ method: "GET" })
-	.inputValidator(GetFieldsInput)
-	.handler(async ({ data }) => {
-		await requireAdmin();
+export const getFieldResponses = createServerOnlyFn(
+	async (type: (typeof entityType.enumValues)[number], entityId: number) => {
+		const rows = await db
+			.select({
+				response: fieldResponses,
+				field: fields,
+			})
+			.from(fieldResponses)
+			.leftJoin(fields, eq(fieldResponses.fieldId, fields.id))
+			.where(
+				and(
+					eq(fieldResponses.entityType, type),
+					eq(fieldResponses.entityId, entityId),
+				),
+			);
 
-		const parsedData = safeParseAndThrow(data, GetFieldsInput);
+		return rows
+			.filter(
+				(
+					row,
+				): row is typeof row & {
+					field: NonNullable<typeof row.field>;
+				} => row.field !== null,
+			)
+			.map((row) => ({
+				fieldId: row.field.id,
+				fieldName: row.field.name,
+				fieldType: row.field.type,
+				value: row.response.value,
+			}));
+	},
+);
 
+const fetchFieldsFromDb = createServerOnlyFn(
+	async (type: (typeof entityType.enumValues)[number]) => {
 		const rows = await db
 			.select({
 				field: fields,
@@ -77,7 +111,7 @@ export const getFields = createServerFn({ method: "GET" })
 			})
 			.from(fields)
 			.leftJoin(fieldOptions, eq(fields.id, fieldOptions.fieldId))
-			.where(eq(fields.entityType, parsedData.entityType))
+			.where(eq(fields.entityType, type))
 			.orderBy(asc(fields.order), fields.id);
 
 		const fieldsAndOptions = rows.reduce((acc, row) => {
@@ -102,4 +136,21 @@ export const getFields = createServerFn({ method: "GET" })
 		}, [] as Field[]);
 
 		return fieldsAndOptions;
+	},
+);
+
+export const getFields = createServerFn({ method: "GET" })
+	.inputValidator(GetFieldsInput)
+	.handler(async ({ data }) => {
+		await requireAdmin();
+
+		const parsedData = safeParseAndThrow(data, GetFieldsInput);
+
+		return await fetchFieldsFromDb(parsedData.entityType);
 	});
+
+export const getPublicRegistrationFields = createServerFn({
+	method: "GET",
+}).handler(async () => {
+	return await fetchFieldsFromDb("registration");
+});

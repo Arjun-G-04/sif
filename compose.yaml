@@ -3,8 +3,8 @@ services:
     image: postgres:18-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: db_user
+      POSTGRES_PASSWORD: ${DB_PASS}
       POSTGRES_DB: sif
     ports:
       - "5432:5432"

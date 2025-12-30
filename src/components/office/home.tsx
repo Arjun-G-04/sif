@@ -1,5 +1,3 @@
-import type { AuthPayload } from "@/lib/auth";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
 	Card,
@@ -8,8 +6,9 @@ import {
 	CardDescription,
 	CardContent,
 } from "@/components/ui/card";
-import { UserIcon, ArrowRightIcon } from "@/components/svgs";
-import { Link } from "@tanstack/react-router";
+import { UserIcon } from "@/components/svgs";
+import { Action } from "../general/action";
+import type { AuthPayload } from "@/lib/auth";
 import { Header } from "./header";
 
 export function Home({ user }: { user: AuthPayload }) {
@@ -48,18 +47,14 @@ export function Home({ user }: { user: AuthPayload }) {
 								</div>
 							</CardHeader>
 							<CardContent className="p-4 grid gap-3">
-								<Button
-									asChild
-									variant="ghost"
-									className="w-full h-auto py-4 px-4 justify-between hover:bg-blue-50/50 hover:text-blue-700 group border border-slate-100 rounded-xl transition-all"
-								>
-									<Link to="/office/user/registration">
-										<span className="font-medium text-slate-700 group-hover:text-blue-700">
-											Modify registration details
-										</span>
-										<ArrowRightIcon className="w-4 h-4 text-slate-400 group-hover:translate-x-1 group-hover:text-blue-600 transition-all" />
-									</Link>
-								</Button>
+								<Action
+									to="/office/registration/edit"
+									label="Modify registration details"
+								/>
+								<Action
+									to="/office/registration/view"
+									label="View registrations"
+								/>
 							</CardContent>
 						</Card>
 					</div>
