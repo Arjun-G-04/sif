@@ -1,6 +1,6 @@
 # SIF Web Application
 
-This is the web application for "SOPHISTICATED INSTRUMENTATION FACILITY" of NIT Trichy.
+This is the web application for **Sophisticated Instrumentation Facility** of NIT Trichy. It leverages Tanstack Start and other varietry of modern Typescript/Javascript ecosystem to provide an efficient user and developer experience.
 
 # Setup
 
