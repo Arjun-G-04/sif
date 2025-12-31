@@ -1,6 +1,9 @@
 import { createReadStream, statSync } from "node:fs";
 import { join } from "node:path";
 import { createFileRoute } from "@tanstack/react-router";
+import { and, eq } from "drizzle-orm";
+import { db } from "@/db";
+import { fieldResponses, fields } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth";
 
 // Helper to get MIME type
@@ -19,21 +22,64 @@ function getMimeType(ext: string): string {
 	return mimeTypes[ext] || "application/octet-stream";
 }
 
-export const Route = createFileRoute("/api/file")({
+export const Route = createFileRoute("/api/file/")({
 	server: {
 		handlers: {
 			GET: async ({ request }) => {
 				// Verify admin access
 				await requireAdmin();
 
-				// Get the file path from query parameter
+				// Get entityId and fieldId from query parameters
 				const url = new URL(request.url);
-				const filePath = url.searchParams.get("path");
+				const entityIdParam = url.searchParams.get("entityId");
+				const fieldIdParam = url.searchParams.get("fieldId");
 				const download = url.searchParams.get("download") === "true";
 
-				if (!filePath) {
-					return new Response("File path required", { status: 400 });
+				if (!entityIdParam || !fieldIdParam) {
+					return new Response("entityId and fieldId are required", {
+						status: 400,
+					});
 				}
+
+				const entityId = Number.parseInt(entityIdParam, 10);
+				const fieldId = Number.parseInt(fieldIdParam, 10);
+
+				if (Number.isNaN(entityId) || Number.isNaN(fieldId)) {
+					return new Response(
+						"entityId and fieldId must be valid numbers",
+						{
+							status: 400,
+						},
+					);
+				}
+
+				// Fetch the file path from field_responses table
+				const [response] = await db
+					.select({
+						value: fieldResponses.value,
+						fieldType: fields.type,
+					})
+					.from(fieldResponses)
+					.leftJoin(fields, eq(fieldResponses.fieldId, fields.id))
+					.where(
+						and(
+							eq(fieldResponses.entityId, entityId),
+							eq(fieldResponses.fieldId, fieldId),
+						),
+					);
+
+				if (!response || !response.value) {
+					return new Response("File not found", { status: 404 });
+				}
+
+				// Ensure it's a file field type
+				if (response.fieldType !== "file") {
+					return new Response("Field is not a file type", {
+						status: 400,
+					});
+				}
+
+				const filePath = response.value;
 
 				// Ensure path is within media directory to prevent directory traversal
 				const absolutePath = join(process.cwd(), filePath);

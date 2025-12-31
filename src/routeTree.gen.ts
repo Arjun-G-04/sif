@@ -12,9 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RegistrationIndexRouteImport } from './routes/registration/index'
 import { Route as OfficeIndexRouteImport } from './routes/office/index'
-import { Route as ApiFileRouteImport } from './routes/api/file'
+import { Route as ApiFileIndexRouteImport } from './routes/api/file/index'
 import { Route as OfficeRegistrationViewIndexRouteImport } from './routes/office/registration/view/index'
 import { Route as OfficeRegistrationEditIndexRouteImport } from './routes/office/registration/edit/index'
+import { Route as OfficeRegistrationViewRegIdRouteImport } from './routes/office/registration/view/$regId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -31,9 +32,9 @@ const OfficeIndexRoute = OfficeIndexRouteImport.update({
   path: '/office/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiFileRoute = ApiFileRouteImport.update({
-  id: '/api/file',
-  path: '/api/file',
+const ApiFileIndexRoute = ApiFileIndexRouteImport.update({
+  id: '/api/file/',
+  path: '/api/file/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OfficeRegistrationViewIndexRoute =
@@ -48,29 +49,38 @@ const OfficeRegistrationEditIndexRoute =
     path: '/office/registration/edit/',
     getParentRoute: () => rootRouteImport,
   } as any)
+const OfficeRegistrationViewRegIdRoute =
+  OfficeRegistrationViewRegIdRouteImport.update({
+    id: '/office/registration/view/$regId',
+    path: '/office/registration/view/$regId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/api/file': typeof ApiFileRoute
   '/office': typeof OfficeIndexRoute
   '/registration': typeof RegistrationIndexRoute
+  '/api/file': typeof ApiFileIndexRoute
+  '/office/registration/view/$regId': typeof OfficeRegistrationViewRegIdRoute
   '/office/registration/edit': typeof OfficeRegistrationEditIndexRoute
   '/office/registration/view': typeof OfficeRegistrationViewIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/api/file': typeof ApiFileRoute
   '/office': typeof OfficeIndexRoute
   '/registration': typeof RegistrationIndexRoute
+  '/api/file': typeof ApiFileIndexRoute
+  '/office/registration/view/$regId': typeof OfficeRegistrationViewRegIdRoute
   '/office/registration/edit': typeof OfficeRegistrationEditIndexRoute
   '/office/registration/view': typeof OfficeRegistrationViewIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/api/file': typeof ApiFileRoute
   '/office/': typeof OfficeIndexRoute
   '/registration/': typeof RegistrationIndexRoute
+  '/api/file/': typeof ApiFileIndexRoute
+  '/office/registration/view/$regId': typeof OfficeRegistrationViewRegIdRoute
   '/office/registration/edit/': typeof OfficeRegistrationEditIndexRoute
   '/office/registration/view/': typeof OfficeRegistrationViewIndexRoute
 }
@@ -78,34 +88,38 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/api/file'
     | '/office'
     | '/registration'
+    | '/api/file'
+    | '/office/registration/view/$regId'
     | '/office/registration/edit'
     | '/office/registration/view'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/api/file'
     | '/office'
     | '/registration'
+    | '/api/file'
+    | '/office/registration/view/$regId'
     | '/office/registration/edit'
     | '/office/registration/view'
   id:
     | '__root__'
     | '/'
-    | '/api/file'
     | '/office/'
     | '/registration/'
+    | '/api/file/'
+    | '/office/registration/view/$regId'
     | '/office/registration/edit/'
     | '/office/registration/view/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ApiFileRoute: typeof ApiFileRoute
   OfficeIndexRoute: typeof OfficeIndexRoute
   RegistrationIndexRoute: typeof RegistrationIndexRoute
+  ApiFileIndexRoute: typeof ApiFileIndexRoute
+  OfficeRegistrationViewRegIdRoute: typeof OfficeRegistrationViewRegIdRoute
   OfficeRegistrationEditIndexRoute: typeof OfficeRegistrationEditIndexRoute
   OfficeRegistrationViewIndexRoute: typeof OfficeRegistrationViewIndexRoute
 }
@@ -133,11 +147,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OfficeIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/file': {
-      id: '/api/file'
+    '/api/file/': {
+      id: '/api/file/'
       path: '/api/file'
       fullPath: '/api/file'
-      preLoaderRoute: typeof ApiFileRouteImport
+      preLoaderRoute: typeof ApiFileIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/office/registration/view/': {
@@ -154,14 +168,22 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OfficeRegistrationEditIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/office/registration/view/$regId': {
+      id: '/office/registration/view/$regId'
+      path: '/office/registration/view/$regId'
+      fullPath: '/office/registration/view/$regId'
+      preLoaderRoute: typeof OfficeRegistrationViewRegIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  ApiFileRoute: ApiFileRoute,
   OfficeIndexRoute: OfficeIndexRoute,
   RegistrationIndexRoute: RegistrationIndexRoute,
+  ApiFileIndexRoute: ApiFileIndexRoute,
+  OfficeRegistrationViewRegIdRoute: OfficeRegistrationViewRegIdRoute,
   OfficeRegistrationEditIndexRoute: OfficeRegistrationEditIndexRoute,
   OfficeRegistrationViewIndexRoute: OfficeRegistrationViewIndexRoute,
 }

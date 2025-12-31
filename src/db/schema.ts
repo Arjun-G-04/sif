@@ -1,11 +1,11 @@
 import {
+	boolean,
+	integer,
 	pgEnum,
 	pgTable,
 	serial,
 	text,
-	integer,
 	timestamp,
-	boolean,
 } from "drizzle-orm/pg-core";
 
 export const userRole = pgEnum("user_role", ["public", "admin"]);
@@ -15,6 +15,9 @@ export const users = pgTable("users", {
 	username: text().notNull().unique(),
 	password: text().notNull(),
 	role: userRole().notNull().default("public"),
+	registrationId: integer("registration_id").references(
+		() => registrations.id,
+	),
 });
 
 export const registrations = pgTable("registrations", {
@@ -23,6 +26,8 @@ export const registrations = pgTable("registrations", {
 	email: text().notNull(),
 	phone: text().notNull(),
 	createdAt: timestamp("created_at").defaultNow(),
+	accepted: boolean("accepted"),
+	rejectionReason: text("rejection_reason"),
 });
 
 export const fieldType = pgEnum("field_type", [

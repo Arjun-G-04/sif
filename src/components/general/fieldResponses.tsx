@@ -17,24 +17,35 @@ interface FieldResponse {
 
 interface FieldResponsesDisplayProps {
 	responses: FieldResponse[];
+	entityId: number;
 	emptyMessage?: string;
 }
 
 interface FileViewerProps {
-	path: string | null;
+	entityId: number;
+	fieldId: number;
 	name: string;
+	hasFile: boolean;
 }
 
-// Helper to convert storage path (media/...) to API URL
-function getFileUrl(path: string, download = false): string {
-	const params = new URLSearchParams({ path });
+// Helper to build file API URL using entityId and fieldId
+function getFileUrl(
+	entityId: number,
+	fieldId: number,
+	download = false,
+): string {
+	const params = new URLSearchParams({
+		entityId: String(entityId),
+		fieldId: String(fieldId),
+	});
 	if (download) params.set("download", "true");
 	const baseUrl = (import.meta.env.VITE_BASE_URL || "").replace(/\/$/, "");
-	return `${baseUrl}/api/file?${params.toString()}`;
+	return `${baseUrl}/api/file?${params.toString()}/`;
 }
 
 export function FieldResponsesDisplay({
 	responses,
+	entityId,
 	emptyMessage = "No field responses.",
 }: FieldResponsesDisplayProps) {
 	if (responses.length === 0) {
@@ -53,7 +64,12 @@ export function FieldResponsesDisplay({
 						{resp.fieldName}
 					</p>
 					{resp.fieldType === "file" ? (
-						<FileViewer path={resp.value} name={resp.fieldName} />
+						<FileViewer
+							entityId={entityId}
+							fieldId={resp.fieldId}
+							name={resp.fieldName}
+							hasFile={!!resp.value}
+						/>
 					) : (
 						<p className="text-slate-900 border border-slate-100 bg-slate-50/30 p-2 rounded text-sm">
 							{resp.value || "—"}
@@ -65,22 +81,22 @@ export function FieldResponsesDisplay({
 	);
 }
 
-export function FileViewer({ path, name: _name }: FileViewerProps) {
+export function FileViewer({
+	entityId,
+	fieldId,
+	name,
+	hasFile,
+}: FileViewerProps) {
 	const [previewOpen, setPreviewOpen] = useState(false);
 
-	if (!path)
+	if (!hasFile)
 		return (
 			<p className="text-slate-400 text-sm italic">No file uploaded</p>
 		);
 
-	const fileName = path.split("/").pop() || "File";
-	const ext = path.split(".").pop()?.toLowerCase() || "";
-	const isImage = ["jpg", "jpeg", "png", "gif", "webp"].includes(ext);
-	const isPdf = ext === "pdf";
-
-	// Get direct file URLs
-	const fileUrl = getFileUrl(path);
-	const downloadUrl = getFileUrl(path, true);
+	const fileName = name || "File";
+	const fileUrl = getFileUrl(entityId, fieldId);
+	const downloadUrl = getFileUrl(entityId, fieldId, true);
 
 	const handleView = (e: React.MouseEvent) => {
 		e.stopPropagation();
@@ -105,8 +121,6 @@ export function FileViewer({ path, name: _name }: FileViewerProps) {
 				fileUrl={fileUrl}
 				downloadUrl={downloadUrl}
 				fileName={fileName}
-				isImage={isImage}
-				isPdf={isPdf}
 			/>
 		</div>
 	);
@@ -118,16 +132,12 @@ function FilePreviewDialog({
 	fileUrl,
 	downloadUrl,
 	fileName,
-	isImage,
-	isPdf,
 }: {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	fileUrl: string;
 	downloadUrl: string;
 	fileName: string;
-	isImage: boolean;
-	isPdf: boolean;
 }) {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(false);
@@ -206,17 +216,7 @@ function FilePreviewDialog({
 								</a>
 							</Button>
 						</div>
-					) : isImage ? (
-						<div className="w-full h-full p-8 flex items-center justify-center">
-							<img
-								src={fileUrl}
-								alt={fileName}
-								onLoad={handleLoad}
-								onError={handleError}
-								className="max-w-full max-h-full object-contain rounded shadow-lg transition-transform duration-300 hover:scale-[1.01]"
-							/>
-						</div>
-					) : isPdf ? (
+					) : (
 						<iframe
 							src={fileUrl}
 							title={fileName}
@@ -224,30 +224,6 @@ function FilePreviewDialog({
 							onError={handleError}
 							className="w-full h-full border-0 bg-white shadow-inner"
 						/>
-					) : (
-						<div className="text-center p-12 bg-slate-900/50 rounded-2xl border border-slate-800 border-dashed max-w-md mx-auto">
-							<div className="bg-slate-800 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-								<FileText className="h-10 w-10 text-slate-400" />
-							</div>
-							<h3 className="text-slate-100 text-xl font-medium mb-2">
-								Preview Unavailable
-							</h3>
-							<p className="text-slate-400 mb-8 max-w-xs mx-auto">
-								This file type cannot be previewed directly in
-								the browser.
-							</p>
-							<Button
-								variant="secondary"
-								size="lg"
-								asChild
-								className="w-full"
-							>
-								<a href={downloadUrl} download={fileName}>
-									<Download className="h-5 w-5 mr-2" />
-									Download to View
-								</a>
-							</Button>
-						</div>
 					)}
 				</div>
 			</DialogContent>

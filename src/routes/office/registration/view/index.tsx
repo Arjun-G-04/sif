@@ -1,12 +1,8 @@
-import { FieldResponsesDisplay } from "@/components/general/fieldResponses";
+import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Eye } from "lucide-react";
 import { Header } from "@/components/office/header";
 import { Button } from "@/components/ui/button";
-import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
 import {
 	Table,
 	TableBody,
@@ -17,12 +13,6 @@ import {
 } from "@/components/ui/table";
 import { requireAdmin } from "@/lib/auth";
 import { getRegistrations } from "@/services/registration";
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { Eye } from "lucide-react";
-import { useState } from "react";
-
-type RegistrationData = Awaited<ReturnType<typeof getRegistrations>>[number];
 
 export const registrationsQueryOptions = queryOptions({
 	queryKey: ["registrations"],
@@ -41,8 +31,7 @@ export const Route = createFileRoute("/office/registration/view/")({
 function RegistrationViewPage() {
 	const user = Route.useLoaderData();
 	const registrations = useSuspenseQuery(registrationsQueryOptions);
-	const [selectedRegistration, setSelectedRegistration] =
-		useState<RegistrationData | null>(null);
+	const navigate = useNavigate();
 
 	return (
 		<div className="min-h-screen flex flex-col bg-slate-50/50">
@@ -63,10 +52,16 @@ function RegistrationViewPage() {
 							<TableHeader>
 								<TableRow className="bg-slate-50">
 									<TableHead className="font-semibold">
+										Registration No.
+									</TableHead>
+									<TableHead className="font-semibold">
 										Email
 									</TableHead>
 									<TableHead className="font-semibold">
 										Phone
+									</TableHead>
+									<TableHead className="font-semibold">
+										Status
 									</TableHead>
 									<TableHead className="text-right font-semibold">
 										Actions
@@ -89,11 +84,34 @@ function RegistrationViewPage() {
 											key={reg.id}
 											className="cursor-pointer hover:bg-slate-50/80 transition-colors"
 											onClick={() =>
-												setSelectedRegistration(reg)
+												navigate({
+													to: "/office/registration/view/$regId",
+													params: {
+														regId: String(reg.id),
+													},
+												})
 											}
 										>
+											<TableCell>{reg.id}</TableCell>
 											<TableCell>{reg.email}</TableCell>
 											<TableCell>{reg.phone}</TableCell>
+											<TableCell>
+												{reg.accepted === true && (
+													<span className="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+														Accepted
+													</span>
+												)}
+												{reg.accepted === false && (
+													<span className="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20">
+														Rejected
+													</span>
+												)}
+												{reg.accepted === null && (
+													<span className="inline-flex items-center rounded-md bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/10">
+														Pending
+													</span>
+												)}
+											</TableCell>
 											<TableCell className="text-right">
 												<Button
 													variant="ghost"
@@ -111,74 +129,6 @@ function RegistrationViewPage() {
 					</div>
 				</div>
 			</main>
-
-			<RegistrationDetailsDialog
-				registration={selectedRegistration}
-				onOpenChange={(open) => !open && setSelectedRegistration(null)}
-			/>
-		</div>
-	);
-}
-
-function RegistrationDetailsDialog({
-	registration,
-	onOpenChange,
-}: {
-	registration: RegistrationData | null;
-	onOpenChange: (open: boolean) => void;
-}) {
-	return (
-		<Dialog open={!!registration} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-				<DialogHeader>
-					<DialogTitle className="text-xl">
-						Registration Details
-					</DialogTitle>
-				</DialogHeader>
-				{registration && (
-					<div className="space-y-6 py-4">
-						<div className="grid grid-cols-2 gap-4">
-							<DetailItem
-								label="Email"
-								value={registration.email}
-							/>
-							<DetailItem
-								label="Phone"
-								value={registration.phone}
-							/>
-							<DetailItem
-								label="Created At"
-								value={
-									registration.createdAt
-										? new Date(
-												registration.createdAt,
-											).toLocaleString()
-										: "-"
-								}
-							/>
-						</div>
-
-						<div className="space-y-4 pt-4 border-t border-slate-100">
-							<h3 className="font-semibold text-slate-900">
-								Field Responses
-							</h3>
-							<FieldResponsesDisplay
-								responses={registration.responses}
-								emptyMessage="No dynamic field responses."
-							/>
-						</div>
-					</div>
-				)}
-			</DialogContent>
-		</Dialog>
-	);
-}
-
-function DetailItem({ label, value }: { label: string; value: string }) {
-	return (
-		<div className="space-y-1">
-			<p className="text-sm font-medium text-slate-500">{label}</p>
-			<p className="text-slate-900 font-medium">{value}</p>
 		</div>
 	);
 }

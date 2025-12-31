@@ -1,4 +1,6 @@
 import { useId, useState } from "react";
+import { publicSignIn } from "@/lib/auth";
+import { Action } from "../general/action";
 import {
 	ArrowRightIcon,
 	EyeIcon,
@@ -7,6 +9,8 @@ import {
 	OfficeIcon,
 	UserIcon,
 } from "../svgs";
+import { Alert, AlertDescription } from "../ui/alert";
+import { Button } from "../ui/button";
 import {
 	Card,
 	CardContent,
@@ -16,11 +20,8 @@ import {
 } from "../ui/card";
 import { Field, FieldLabel } from "../ui/field";
 import { Input } from "../ui/input";
-import { Alert, AlertDescription } from "../ui/alert";
-import { Button } from "../ui/button";
-import { Spinner } from "../ui/spinner";
 import { Separator } from "../ui/separator";
-import { Action } from "../general/action";
+import { Spinner } from "../ui/spinner";
 
 export function Login() {
 	const [username, setUsername] = useState("");
@@ -35,7 +36,12 @@ export function Login() {
 		setError(null);
 
 		try {
-			await new Promise((resolve) => setTimeout(resolve, 4000));
+			await publicSignIn({
+				data: {
+					username,
+					password,
+				},
+			});
 			window.location.reload();
 		} catch (err) {
 			setError((err as Error).message);

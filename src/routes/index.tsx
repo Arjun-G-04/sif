@@ -1,9 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Home } from "@/components/user/home";
 import { Login } from "@/components/user/login";
+import { verifyAuth } from "@/lib/auth";
 
-export const Route = createFileRoute("/")({ component: HomePage });
+export const Route = createFileRoute("/")({
+	component: HomePage,
+	loader: async () => {
+		return await verifyAuth();
+	},
+});
 
 function HomePage() {
+	const loaderData = Route.useLoaderData();
+
+	if (loaderData.authenticated && loaderData.user) {
+		return <Home user={loaderData.user} />;
+	}
 	return (
 		<div className="h-screen flex flex-col md:flex-row bg-slate-50 overflow-hidden font-sans">
 			{/* Left Column: Scrollable SIF Content (2/3) */}
