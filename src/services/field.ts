@@ -65,6 +65,74 @@ export const createField = createServerFn({ method: "POST" })
 		});
 	});
 
+const UpdateFieldInput = z.object({
+	id: z.number().int(),
+	name: z.string().min(1, "Field name is required"),
+	type: z.enum(fieldType.enumValues, "Invalid field type"),
+	order: z.number().int().default(0),
+	options: z.array(z.string()).optional(),
+});
+
+export const updateField = createServerFn({ method: "POST" })
+	.inputValidator(UpdateFieldInput)
+	.handler(async ({ data }) => {
+		await requireAdmin();
+		const parsedData = safeParseAndThrow(data, UpdateFieldInput);
+
+		await db.transaction(async (tx) => {
+			await tx
+				.update(fields)
+				.set({
+					name: parsedData.name,
+					type: parsedData.type,
+					order: parsedData.order,
+				})
+				.where(eq(fields.id, parsedData.id));
+
+			// Handle options for single_select
+			if (parsedData.type === "single_select") {
+				// Delete existing options
+				await tx
+					.delete(fieldOptions)
+					.where(eq(fieldOptions.fieldId, parsedData.id));
+
+				// Insert new options
+				if (parsedData.options && parsedData.options.length > 0) {
+					await tx.insert(fieldOptions).values(
+						parsedData.options.map((opt) => ({
+							fieldId: parsedData.id,
+							value: opt,
+						})),
+					);
+				}
+			} else {
+				// If type changed from single_select to something else, clear options strictly speaking not needed due to cascade but good for clarity if we kept options around.
+				// Actually schema has cascade on delete field, but not on type change.
+				// For now let's just delete options associated if any exists to be clean.
+				await tx
+					.delete(fieldOptions)
+					.where(eq(fieldOptions.fieldId, parsedData.id));
+			}
+		});
+	});
+
+const ToggleFieldActiveInput = z.object({
+	id: z.number().int(),
+	active: z.boolean(),
+});
+
+export const toggleFieldActive = createServerFn({ method: "POST" })
+	.inputValidator(ToggleFieldActiveInput)
+	.handler(async ({ data }) => {
+		await requireAdmin();
+		const parsedData = safeParseAndThrow(data, ToggleFieldActiveInput);
+
+		await db
+			.update(fields)
+			.set({ active: parsedData.active })
+			.where(eq(fields.id, parsedData.id));
+	});
+
 const GetFieldsInput = z.object({
 	entityType: z.enum(entityType.enumValues, "Invalid entity type"),
 });
@@ -103,7 +171,10 @@ export const getFieldResponses = createServerOnlyFn(
 );
 
 const fetchFieldsFromDb = createServerOnlyFn(
-	async (type: (typeof entityType.enumValues)[number]) => {
+	async (
+		type: (typeof entityType.enumValues)[number],
+		includeInactive = false,
+	) => {
 		const rows = await db
 			.select({
 				field: fields,
@@ -111,7 +182,12 @@ const fetchFieldsFromDb = createServerOnlyFn(
 			})
 			.from(fields)
 			.leftJoin(fieldOptions, eq(fields.id, fieldOptions.fieldId))
-			.where(eq(fields.entityType, type))
+			.where(
+				and(
+					eq(fields.entityType, type),
+					includeInactive ? undefined : eq(fields.active, true),
+				),
+			)
 			.orderBy(asc(fields.order), fields.id);
 
 		const fieldsAndOptions = rows.reduce((acc, row) => {
@@ -146,11 +222,11 @@ export const getFields = createServerFn({ method: "GET" })
 
 		const parsedData = safeParseAndThrow(data, GetFieldsInput);
 
-		return await fetchFieldsFromDb(parsedData.entityType);
+		return await fetchFieldsFromDb(parsedData.entityType, true);
 	});
 
 export const getPublicRegistrationFields = createServerFn({
 	method: "GET",
 }).handler(async () => {
-	return await fetchFieldsFromDb("registration");
+	return await fetchFieldsFromDb("registration", false);
 });

@@ -1,10 +1,10 @@
-import { AddFieldDialog } from "@/components/office/addFieldDialog";
+import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
+import { FieldDialog } from "@/components/office/fieldDialog";
 import { FieldsView } from "@/components/office/fieldsView";
 import { Header } from "@/components/office/header";
 import { requireAdmin } from "@/lib/auth";
 import { getFields } from "@/services/field";
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
 
 export const fieldsQueryOptions = queryOptions({
 	queryKey: ["fields", "registration"],
@@ -38,7 +38,7 @@ function RegistrationPage() {
 								Manage fields for user registration.
 							</p>
 						</div>
-						<AddFieldDialog entityType="registration" />
+						<FieldDialog entityType="registration" />
 					</div>
 					<FieldsView fields={fields.data} />
 				</div>

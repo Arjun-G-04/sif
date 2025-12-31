@@ -45,6 +45,7 @@ export const fields = pgTable("fields", {
 	name: text().notNull(),
 	type: fieldType().notNull(),
 	order: integer().notNull().default(0),
+	active: boolean().notNull().default(true),
 });
 
 export const fieldOptions = pgTable("field_options", {

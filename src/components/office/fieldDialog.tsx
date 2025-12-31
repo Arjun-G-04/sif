@@ -1,3 +1,7 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Plus, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useId, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -17,34 +21,67 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { type entityType as entityTypeDef, fieldType } from "@/db/schema";
-import { createField } from "@/services/field";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2 } from "lucide-react";
-import { useId, useState } from "react";
-import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
+import { type entityType as entityTypeDef, fieldType } from "@/db/schema";
+import { createField, type Field, updateField } from "@/services/field";
 
 const fieldTypeEnum = fieldType.enumValues;
 type FieldType = (typeof fieldTypeEnum)[number];
 
-export function AddFieldDialog({
-	entityType,
-}: {
+interface FieldDialogProps {
 	entityType: (typeof entityTypeDef.enumValues)[number];
-}) {
+	field?: Field;
+	trigger?: React.ReactNode;
+}
+
+export function FieldDialog({ entityType, field, trigger }: FieldDialogProps) {
+	const isEdit = !!field;
 	const [open, setOpen] = useState(false);
-	const [name, setName] = useState("");
-	const [type, setType] = useState<FieldType>("text");
-	const [order, setOrder] = useState(0);
-	const [options, setOptions] = useState<{ id: string; value: string }[]>([]);
+	const [name, setName] = useState(field?.name || "");
+	const [type, setType] = useState<FieldType>(field?.type || "text");
+	const [order, setOrder] = useState(field?.order || 0);
+	const [options, setOptions] = useState<{ id: string; value: string }[]>(
+		field?.type === "single_select" && field.options
+			? field.options.map((o) => ({
+					id: String(o.id),
+					value: o.value,
+				}))
+			: [],
+	);
+
+	const resetForm = useCallback(() => {
+		setName("");
+		setType("text");
+		setOrder(0);
+		setOptions([]);
+	}, []);
+
+	useEffect(() => {
+		if (open) {
+			if (field) {
+				setName(field.name);
+				setType(field.type);
+				setOrder(field.order);
+				setOptions(
+					field.type === "single_select" && field.options
+						? field.options.map((o) => ({
+								id: String(o.id),
+								value: o.value,
+							}))
+						: [],
+				);
+			} else {
+				resetForm();
+			}
+		}
+	}, [open, field, resetForm]);
 
 	const nameId = useId();
 	const orderId = useId();
 
 	const queryClient = useQueryClient();
 
-	const mutation = useMutation({
+	const createMutation = useMutation({
 		mutationFn: () =>
 			createField({
 				data: {
@@ -69,12 +106,31 @@ export function AddFieldDialog({
 		},
 	});
 
-	function resetForm() {
-		setName("");
-		setType("text");
-		setOrder(0);
-		setOptions([]);
-	}
+	const updateMutation = useMutation({
+		mutationFn: () => {
+			if (!field) throw new Error("Field is missing");
+			return updateField({
+				data: {
+					id: field.id,
+					name,
+					type,
+					order,
+					options:
+						type === "single_select"
+							? options.map((o) => o.value)
+							: undefined,
+				},
+			});
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["fields", entityType] });
+			toast.success("Field updated successfully");
+			setOpen(false);
+		},
+		onError: (error) => {
+			toast.error(error.message || "Failed to update field");
+		},
+	});
 
 	function handleAddOption() {
 		setOptions([...options, { id: crypto.randomUUID(), value: "" }]);
@@ -95,28 +151,42 @@ export function AddFieldDialog({
 			toast.error("Field name is required");
 			return;
 		}
-		mutation.mutate();
+		if (isEdit) {
+			updateMutation.mutate();
+		} else {
+			createMutation.mutate();
+		}
 	}
+
+	const isPending = createMutation.isPending || updateMutation.isPending;
 
 	return (
 		<Dialog
 			open={open}
 			onOpenChange={(val) => {
 				setOpen(val);
-				if (!val) resetForm();
+				if (!val && !isEdit) resetForm();
 			}}
 		>
 			<DialogTrigger asChild>
-				<Button>
-					<Plus className="mr-2 h-4 w-4" />
-					Add Field
-				</Button>
+				{trigger ? (
+					trigger
+				) : (
+					<Button>
+						<Plus className="mr-2 h-4 w-4" />
+						Add Field
+					</Button>
+				)}
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-[425px]">
 				<DialogHeader>
-					<DialogTitle>Add New Field</DialogTitle>
+					<DialogTitle>
+						{isEdit ? "Edit Field" : "Add New Field"}
+					</DialogTitle>
 					<DialogDescription>
-						Create a new custom field for {entityType} registration.
+						{isEdit
+							? "Modify existing field details."
+							: `Create a new custom field for ${entityType}.`}
 					</DialogDescription>
 				</DialogHeader>
 				<div className="space-y-4 py-4">
@@ -198,15 +268,14 @@ export function AddFieldDialog({
 					)}
 				</div>
 				<DialogFooter>
-					<Button
-						onClick={handleSubmit}
-						disabled={mutation.isPending}
-					>
-						{mutation.isPending ? (
+					<Button onClick={handleSubmit} disabled={isPending}>
+						{isPending ? (
 							<>
 								<Spinner />
-								Creating...
+								{isEdit ? "Saving..." : "Creating..."}
 							</>
+						) : isEdit ? (
+							"Save Changes"
 						) : (
 							"Create Field"
 						)}
