@@ -2,14 +2,21 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { createServerFn } from "@tanstack/react-start";
 import { hash } from "bcrypt";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import * as z from "zod";
 import { sendEmail } from "@/lib/email";
 import { db } from "../db";
-import { fieldResponses, fields, registrations, users } from "../db/schema";
+import {
+	fieldResponses,
+	fields,
+	otpVerifications,
+	registrations,
+	users,
+} from "../db/schema";
 import { requireAdmin } from "../lib/auth";
 import { safeParseAndThrow } from "../lib/utils";
 import { getFieldResponses } from "./field";
+import { getConfigHelper } from "./configuration";
 
 export const submitRegistration = createServerFn({ method: "POST" })
 	.inputValidator((data: unknown) => data as FormData)
@@ -23,6 +30,53 @@ export const submitRegistration = createServerFn({ method: "POST" })
 			throw new Error(
 				"Missing required fields: username, password, email, or phone",
 			);
+		}
+
+		// 1. Check if user already exists
+		const [existingUser] = await db
+			.select()
+			.from(users)
+			.where(eq(users.username, email))
+			.limit(1);
+
+		if (existingUser) {
+			throw new Error("A user with this email already exists");
+		}
+
+		// 2. Verify Email OTP
+		const [emailVerification] = await db
+			.select()
+			.from(otpVerifications)
+			.where(
+				and(
+					eq(otpVerifications.type, "email"),
+					eq(otpVerifications.target, email),
+					eq(otpVerifications.verified, true),
+				),
+			)
+			.orderBy(otpVerifications.createdAt)
+			.limit(1);
+
+		if (!emailVerification) {
+			throw new Error("Email has not been verified with OTP");
+		}
+
+		// 3. Verify Phone OTP
+		const [phoneVerification] = await db
+			.select()
+			.from(otpVerifications)
+			.where(
+				and(
+					eq(otpVerifications.type, "phone"),
+					eq(otpVerifications.target, phone),
+					eq(otpVerifications.verified, true),
+				),
+			)
+			.orderBy(otpVerifications.createdAt)
+			.limit(1);
+
+		if (!phoneVerification) {
+			throw new Error("Phone number has not been verified with OTP");
 		}
 
 		// Hash password
@@ -107,6 +161,17 @@ export const submitRegistration = createServerFn({ method: "POST" })
 		// Insert all field responses
 		if (fieldResponsesToInsert.length > 0) {
 			await db.insert(fieldResponses).values(fieldResponsesToInsert);
+		}
+
+		if (process.env.NODE_ENV === "production") {
+			const config = await getConfigHelper();
+			if (config?.officeEmail) {
+				await sendEmail({
+					to: config.officeEmail,
+					subject: "New Registration",
+					message: `A new registration (ID: ${registration.id}) has been submitted.`,
+				});
+			}
 		}
 
 		return { success: true, registrationId: registration.id };

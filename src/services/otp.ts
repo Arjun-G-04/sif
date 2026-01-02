@@ -3,7 +3,7 @@ import { eq, and, gt } from "drizzle-orm";
 import * as z from "zod";
 import { hash, compare } from "bcrypt";
 import { db } from "../db";
-import { otpVerifications, otpType } from "../db/schema";
+import { otpVerifications, otpType, users } from "../db/schema";
 import { safeParseAndThrow } from "../lib/utils";
 import { verifyTurnstileToken } from "../lib/turnstile";
 import { checkRateLimit, recordRequest } from "../lib/rateLimit";
@@ -84,8 +84,6 @@ export const verifyOtp = createServerFn({ method: "POST" })
 export const sendOtp = createServerFn({ method: "POST" })
 	.inputValidator(SendOtpInput)
 	.handler(async ({ data }) => {
-		// TO-DO: check whether exists in users table
-
 		const parsedData = safeParseAndThrow(data, SendOtpInput);
 
 		// Specific validations based on type
@@ -115,6 +113,19 @@ export const sendOtp = createServerFn({ method: "POST" })
 			throw new Error(
 				`Too many requests. Please try again in ${rateCheck.retryAfter} seconds.`,
 			);
+		}
+
+		// Check if user already exists for email type
+		if (parsedData.type === "email") {
+			const [existingUser] = await db
+				.select()
+				.from(users)
+				.where(eq(users.username, parsedData.target))
+				.limit(1);
+
+			if (existingUser) {
+				throw new Error("An account with this email already exists.");
+			}
 		}
 
 		// Generate OTP

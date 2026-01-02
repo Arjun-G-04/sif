@@ -10,6 +10,7 @@ import { UserIcon } from "@/components/svgs";
 import { Action } from "../general/action";
 import type { AuthPayload } from "@/lib/auth";
 import { Header } from "./header";
+import { Settings2 } from "lucide-react";
 
 export function Home({ user }: { user: AuthPayload }) {
 	return (
@@ -54,6 +55,28 @@ export function Home({ user }: { user: AuthPayload }) {
 								<Action
 									to="/office/registration/view"
 									label="View registrations"
+								/>
+							</CardContent>
+						</Card>
+
+						<Card className="shadow-sm border-slate-200">
+							<CardHeader className="flex flex-row items-center gap-4 space-y-0">
+								<div className="h-10 w-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
+									<Settings2 className="w-5 h-5" />
+								</div>
+								<div>
+									<CardTitle className="text-lg">
+										Configuration
+									</CardTitle>
+									<CardDescription>
+										Manage portal configuration
+									</CardDescription>
+								</div>
+							</CardHeader>
+							<CardContent className="p-4 grid gap-3">
+								<Action
+									to="/office/configuration"
+									label="Change configuration values"
 								/>
 							</CardContent>
 						</Card>

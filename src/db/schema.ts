@@ -79,3 +79,8 @@ export const otpVerifications = pgTable("otp_verifications", {
 	turnstileToken: text("turnstile_token"), // stored for audit/debugging
 	createdAt: timestamp("created_at").defaultNow(),
 });
+
+export const configurations = pgTable("configurations", {
+	id: serial().primaryKey(),
+	officeEmail: text(),
+});
