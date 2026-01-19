@@ -19,8 +19,10 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { getPublicRegistrationFields } from "@/services/field";
-import { submitRegistration } from "@/services/registration";
+import {
+	getPublicRegistrationFields,
+	submitRegistration,
+} from "@/services/registration";
 
 export const publicFieldsQueryOptions = queryOptions({
 	queryKey: ["fields", "public", "registration"],
@@ -147,6 +149,7 @@ function RegistrationPage() {
 									onSubmit={registrationMutation.mutate}
 									onBack={() => setStep(2)}
 									isLoading={registrationMutation.isPending}
+									submitText="Register"
 								/>
 								{registrationMutation.error && (
 									<Alert variant="destructive">

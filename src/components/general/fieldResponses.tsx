@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 
 interface FieldResponse {
+	responseId: number;
 	fieldId: number;
 	fieldName: string;
 	fieldType: string;
@@ -17,35 +18,27 @@ interface FieldResponse {
 
 interface FieldResponsesDisplayProps {
 	responses: FieldResponse[];
-	entityId: number;
 	emptyMessage?: string;
 }
 
 interface FileViewerProps {
-	entityId: number;
-	fieldId: number;
+	responseId: number;
 	name: string;
 	hasFile: boolean;
 }
 
-// Helper to build file API URL using entityId and fieldId
-function getFileUrl(
-	entityId: number,
-	fieldId: number,
-	download = false,
-): string {
+// Helper to build file API URL using responseId
+function getFileUrl(responseId: number, download = false): string {
 	const params = new URLSearchParams({
-		entityId: String(entityId),
-		fieldId: String(fieldId),
+		responseId: String(responseId),
 	});
 	if (download) params.set("download", "true");
 	const baseUrl = (import.meta.env.VITE_BASE_URL || "").replace(/\/$/, "");
-	return `${baseUrl}/api/file?${params.toString()}/`;
+	return `${baseUrl}/api/file/?${params.toString()}`;
 }
 
 export function FieldResponsesDisplay({
 	responses,
-	entityId,
 	emptyMessage = "No field responses.",
 }: FieldResponsesDisplayProps) {
 	if (responses.length === 0) {
@@ -59,14 +52,13 @@ export function FieldResponsesDisplay({
 	return (
 		<div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
 			{responses.map((resp) => (
-				<div key={resp.fieldId} className="space-y-1">
+				<div key={resp.responseId} className="space-y-1">
 					<p className="text-sm font-medium text-slate-500">
 						{resp.fieldName}
 					</p>
 					{resp.fieldType === "file" ? (
 						<FileViewer
-							entityId={entityId}
-							fieldId={resp.fieldId}
+							responseId={resp.responseId}
 							name={resp.fieldName}
 							hasFile={!!resp.value}
 						/>
@@ -81,12 +73,7 @@ export function FieldResponsesDisplay({
 	);
 }
 
-export function FileViewer({
-	entityId,
-	fieldId,
-	name,
-	hasFile,
-}: FileViewerProps) {
+export function FileViewer({ responseId, name, hasFile }: FileViewerProps) {
 	const [previewOpen, setPreviewOpen] = useState(false);
 
 	if (!hasFile)
@@ -95,8 +82,8 @@ export function FileViewer({
 		);
 
 	const fileName = name || "File";
-	const fileUrl = getFileUrl(entityId, fieldId);
-	const downloadUrl = getFileUrl(entityId, fieldId, true);
+	const fileUrl = getFileUrl(responseId);
+	const downloadUrl = getFileUrl(responseId, true);
 
 	const handleView = (e: React.MouseEvent) => {
 		e.stopPropagation();

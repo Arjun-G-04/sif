@@ -5,16 +5,17 @@ import { ArrowRightIcon } from "../svgs";
 interface ActionProps {
 	to: string;
 	label: string;
+	params?: Record<string, string>;
 }
 
-export function Action({ to, label }: ActionProps) {
+export function Action({ to, label, params }: ActionProps) {
 	return (
 		<Button
 			asChild
 			variant="ghost"
 			className="w-full h-auto py-4 px-4 justify-between hover:bg-blue-50/50 hover:text-blue-700 group border border-slate-100 rounded-xl transition-all"
 		>
-			<Link to={to}>
+			<Link to={to} params={params}>
 				<span className="font-medium text-slate-700 group-hover:text-blue-700">
 					{label}
 				</span>

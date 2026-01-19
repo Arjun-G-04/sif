@@ -10,7 +10,63 @@ import { UserIcon } from "@/components/svgs";
 import { Action } from "../general/action";
 import type { AuthPayload } from "@/lib/auth";
 import { Header } from "./header";
-import { Settings2 } from "lucide-react";
+import { Calendar, Settings2, Wrench } from "lucide-react";
+
+const DASHBOARD_ITEMS = [
+	{
+		title: "Registrations",
+		description: "Manage registrations",
+		icon: UserIcon,
+		iconColor: "text-blue-600",
+		iconBg: "bg-blue-50",
+		actions: [
+			{ to: "/office/registration/view", label: "View registrations" },
+			{
+				to: "/office/registration/edit",
+				label: "Modify registration details",
+			},
+		],
+	},
+	{
+		title: "Equipments",
+		description: "Manage equipments",
+		icon: Wrench,
+		iconColor: "text-orange-600",
+		iconBg: "bg-orange-50",
+		actions: [
+			{
+				to: "/office/equipment/edit",
+				label: "Modify list of equipments",
+			},
+		],
+	},
+	{
+		title: "Bookings",
+		description: "Manage bookings",
+		icon: Calendar,
+		iconColor: "text-green-600",
+		iconBg: "bg-green-50",
+		actions: [
+			{
+				to: "/office/booking/view",
+				label: "View bookings",
+			},
+		],
+	},
+	{
+		title: "Configuration",
+		description: "Manage portal configuration",
+		icon: Settings2,
+		iconColor: "text-purple-600",
+		iconBg: "bg-purple-50",
+		actions: [
+			{
+				to: "/office/configuration",
+				label: "Change configuration values",
+			},
+		],
+	},
+];
 
 export function Home({ user }: { user: AuthPayload }) {
 	return (
@@ -33,53 +89,37 @@ export function Home({ user }: { user: AuthPayload }) {
 
 					{/* Dashboard items */}
 					<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-						<Card className="shadow-sm border-slate-200">
-							<CardHeader className="flex flex-row items-center gap-4 space-y-0">
-								<div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
-									<UserIcon className="w-5 h-5" />
-								</div>
-								<div>
-									<CardTitle className="text-lg">
-										User Management
-									</CardTitle>
-									<CardDescription>
-										Manage registrations and users
-									</CardDescription>
-								</div>
-							</CardHeader>
-							<CardContent className="p-4 grid gap-3">
-								<Action
-									to="/office/registration/edit"
-									label="Modify registration details"
-								/>
-								<Action
-									to="/office/registration/view"
-									label="View registrations"
-								/>
-							</CardContent>
-						</Card>
-
-						<Card className="shadow-sm border-slate-200">
-							<CardHeader className="flex flex-row items-center gap-4 space-y-0">
-								<div className="h-10 w-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
-									<Settings2 className="w-5 h-5" />
-								</div>
-								<div>
-									<CardTitle className="text-lg">
-										Configuration
-									</CardTitle>
-									<CardDescription>
-										Manage portal configuration
-									</CardDescription>
-								</div>
-							</CardHeader>
-							<CardContent className="p-4 grid gap-3">
-								<Action
-									to="/office/configuration"
-									label="Change configuration values"
-								/>
-							</CardContent>
-						</Card>
+						{DASHBOARD_ITEMS.map((item) => (
+							<Card
+								key={item.title}
+								className="shadow-sm border-slate-200"
+							>
+								<CardHeader className="flex flex-row items-center gap-4 space-y-0">
+									<div
+										className={`h-10 w-10 rounded-full flex items-center justify-center ${item.iconBg} ${item.iconColor}`}
+									>
+										<item.icon className="w-5 h-5" />
+									</div>
+									<div>
+										<CardTitle className="text-lg">
+											{item.title}
+										</CardTitle>
+										<CardDescription>
+											{item.description}
+										</CardDescription>
+									</div>
+								</CardHeader>
+								<CardContent className="p-4 grid gap-3">
+									{item.actions.map((action) => (
+										<Action
+											key={action.to}
+											to={action.to}
+											label={action.label}
+										/>
+									))}
+								</CardContent>
+							</Card>
+						))}
 					</div>
 				</div>
 			</main>

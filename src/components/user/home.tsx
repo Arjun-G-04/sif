@@ -1,4 +1,4 @@
-import { OfficeIcon } from "@/components/svgs";
+import { WrenchIcon } from "@/components/svgs";
 import {
 	Card,
 	CardHeader,
@@ -9,6 +9,23 @@ import {
 import { Separator } from "@/components/ui/separator";
 import type { AuthPayload } from "@/lib/auth";
 import { Header } from "./header";
+import { Action } from "../general/action";
+
+const DASHBOARD_ITEMS = [
+	{
+		title: "Equipments",
+		description: "Book available equipments",
+		icon: WrenchIcon,
+		iconColor: "text-indigo-600",
+		iconBg: "bg-indigo-50",
+		actions: [
+			{
+				to: "/book",
+				label: "View available equipments",
+			},
+		],
+	},
+];
 
 export function Home({ user }: { user: AuthPayload }) {
 	return (
@@ -31,26 +48,43 @@ export function Home({ user }: { user: AuthPayload }) {
 
 					{/* Dashboard items */}
 					<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-						<Card className="shadow-sm border-slate-200">
-							<CardHeader className="flex flex-row items-center gap-4 space-y-0">
-								<div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
-									<OfficeIcon className="w-5 h-5" />
-								</div>
-								<div>
-									<CardTitle className="text-lg">
-										Services
-									</CardTitle>
-									<CardDescription>
-										Explore available services
-									</CardDescription>
-								</div>
-							</CardHeader>
-							<CardContent className="p-4">
-								<p className="text-sm text-slate-500">
-									More features coming soon...
-								</p>
-							</CardContent>
-						</Card>
+						{DASHBOARD_ITEMS.map((item) => (
+							<Card
+								key={item.title}
+								className="shadow-sm border-slate-200"
+							>
+								<CardHeader className="flex flex-row items-center gap-4 space-y-0">
+									<div
+										className={`h-10 w-10 rounded-full flex items-center justify-center ${item.iconBg} ${item.iconColor}`}
+									>
+										<item.icon className="w-5 h-5" />
+									</div>
+									<div>
+										<CardTitle className="text-lg text-slate-900">
+											{item.title}
+										</CardTitle>
+										<CardDescription>
+											{item.description}
+										</CardDescription>
+									</div>
+								</CardHeader>
+								<CardContent className="p-4 grid gap-3">
+									{item.actions.length > 0 ? (
+										item.actions.map((action) => (
+											<Action
+												key={action.to}
+												to={action.to}
+												label={action.label}
+											/>
+										))
+									) : (
+										<p className="text-sm text-slate-500 italic">
+											More features coming soon...
+										</p>
+									)}
+								</CardContent>
+							</Card>
+						))}
 					</div>
 				</div>
 			</main>

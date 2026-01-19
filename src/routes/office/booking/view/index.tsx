@@ -12,26 +12,38 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { requireAdmin } from "@/lib/auth";
-import { getRegistrations } from "@/services/registration";
+import { getBookings } from "@/services/booking";
 
-export const registrationsQueryOptions = queryOptions({
-	queryKey: ["registrations"],
-	queryFn: () => getRegistrations(),
+export const bookingsQueryOptions = queryOptions({
+	queryKey: ["bookings"],
+	queryFn: () => getBookings(),
 });
 
-export const Route = createFileRoute("/office/registration/view/")({
-	component: RegistrationViewPage,
+export const Route = createFileRoute("/office/booking/view/")({
+	component: BookingViewPage,
 	loader: async ({ context }) => {
 		const user = await requireAdmin();
-		await context.queryClient.ensureQueryData(registrationsQueryOptions);
+		await context.queryClient.ensureQueryData(bookingsQueryOptions);
 		return user;
 	},
 });
 
-function RegistrationViewPage() {
+function BookingViewPage() {
 	const user = Route.useLoaderData();
-	const registrations = useSuspenseQuery(registrationsQueryOptions);
+	const bookings = useSuspenseQuery(bookingsQueryOptions);
 	const navigate = useNavigate();
+
+	const formatDate = (date: Date | string | null) => {
+		if (!date) return "-";
+		const d = new Date(date);
+		return d.toLocaleDateString("en-US", {
+			year: "numeric",
+			month: "short",
+			day: "numeric",
+			hour: "2-digit",
+			minute: "2-digit",
+		});
+	};
 
 	return (
 		<div className="min-h-screen flex flex-col bg-slate-50/50">
@@ -40,10 +52,10 @@ function RegistrationViewPage() {
 				<div className="w-full space-y-6">
 					<div>
 						<h2 className="text-2xl font-bold tracking-tight text-slate-900">
-							User Registrations
+							Bookings
 						</h2>
 						<p className="text-slate-500">
-							View and manage submitted user registrations.
+							View and manage equipment bookings.
 						</p>
 					</div>
 
@@ -52,16 +64,16 @@ function RegistrationViewPage() {
 							<TableHeader>
 								<TableRow className="bg-slate-50">
 									<TableHead className="font-semibold">
-										Registration No.
+										Booking No.
 									</TableHead>
 									<TableHead className="font-semibold">
-										Email
+										User
 									</TableHead>
 									<TableHead className="font-semibold">
-										Phone
+										Equipment
 									</TableHead>
 									<TableHead className="font-semibold">
-										Status
+										Created At
 									</TableHead>
 									<TableHead className="font-semibold">
 										Actions
@@ -69,48 +81,40 @@ function RegistrationViewPage() {
 								</TableRow>
 							</TableHeader>
 							<TableBody>
-								{registrations.data.length === 0 ? (
+								{bookings.data.length === 0 ? (
 									<TableRow>
 										<TableCell
 											colSpan={5}
 											className="h-32 text-center text-slate-500"
 										>
-											No registrations found.
+											No bookings found.
 										</TableCell>
 									</TableRow>
 								) : (
-									registrations.data.map((reg) => (
+									bookings.data.map((booking) => (
 										<TableRow
-											key={reg.id}
+											key={booking.id}
 											className="cursor-pointer hover:bg-slate-50/80 transition-colors"
 											onClick={() =>
 												navigate({
-													to: "/office/registration/view/$regId",
+													to: "/office/booking/view/$bookingId",
 													params: {
-														regId: String(reg.id),
+														bookingId: String(
+															booking.id,
+														),
 													},
 												})
 											}
 										>
-											<TableCell>{reg.id}</TableCell>
-											<TableCell>{reg.email}</TableCell>
-											<TableCell>{reg.phone}</TableCell>
+											<TableCell>{booking.id}</TableCell>
 											<TableCell>
-												{reg.accepted === true && (
-													<span className="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
-														Accepted
-													</span>
-												)}
-												{reg.accepted === false && (
-													<span className="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20">
-														Rejected
-													</span>
-												)}
-												{reg.accepted === null && (
-													<span className="inline-flex items-center rounded-md bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/10">
-														Pending
-													</span>
-												)}
+												{booking.userEmail ?? "-"}
+											</TableCell>
+											<TableCell>
+												{booking.equipmentName ?? "-"}
+											</TableCell>
+											<TableCell>
+												{formatDate(booking.createdAt)}
 											</TableCell>
 											<TableCell>
 												<Button

@@ -187,3 +187,14 @@ export async function requireAdmin() {
 
 	return authStatus.user;
 }
+
+export async function requireUser() {
+	const authStatus = await verifyAuth();
+	if (!authStatus.authenticated) {
+		throw redirect({
+			to: "/",
+		});
+	}
+
+	return authStatus.user;
+}

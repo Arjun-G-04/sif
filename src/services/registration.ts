@@ -1,5 +1,3 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
 import { createServerFn } from "@tanstack/react-start";
 import { hash } from "bcrypt";
 import { eq, and } from "drizzle-orm";
@@ -8,14 +6,17 @@ import { sendEmail } from "@/lib/email";
 import { db } from "../db";
 import {
 	fieldResponses,
-	fields,
 	otpVerifications,
 	registrations,
 	users,
 } from "../db/schema";
 import { requireAdmin } from "../lib/auth";
 import { safeParseAndThrow } from "../lib/utils";
-import { getFieldResponses } from "./field";
+import {
+	fetchFieldsFromDb,
+	getFieldResponses,
+	parseFieldResponses,
+} from "./field";
 import { getConfigHelper } from "./configuration";
 
 export const submitRegistration = createServerFn({ method: "POST" })
@@ -82,17 +83,6 @@ export const submitRegistration = createServerFn({ method: "POST" })
 		// Hash password
 		const hashedPassword = await hash(password, 10);
 
-		// Get all registration fields to identify which FormData entries are dynamic fields
-		const registrationFields = await db
-			.select({ id: fields.id, name: fields.name, type: fields.type })
-			.from(fields)
-			.where(eq(fields.entityType, "registration"));
-
-		// Map by field ID (as string, since FormData keys are strings)
-		const fieldIdToField = new Map(
-			registrationFields.map((f) => [String(f.id), f]),
-		);
-
 		// Insert registration record
 		const [registration] = await db
 			.insert(registrations)
@@ -103,64 +93,26 @@ export const submitRegistration = createServerFn({ method: "POST" })
 			})
 			.returning({ id: registrations.id });
 
-		// Process dynamic fields
-		const fieldResponsesToInsert: {
-			entityType: "registration";
-			entityId: number;
-			fieldId: number;
-			value: string | null;
-		}[] = [];
-
-		for (const [key, value] of formData.entries()) {
-			// Skip base fields
-			if (["username", "password", "email", "phone"].includes(key)) {
-				continue;
-			}
-
-			const field = fieldIdToField.get(key);
-			if (!field) {
-				continue; // Skip unknown fields
-			}
-
-			let fieldValue: string | null = null;
-
-			if (
-				field.type === "file" &&
-				value instanceof File &&
-				value.size > 0
-			) {
-				// Handle file upload
-				const mediaDir = join(
-					process.cwd(),
-					"media",
-					"registrations",
-					String(registration.id),
-				);
-				await mkdir(mediaDir, { recursive: true });
-
-				const fileName = `${field.id}_${value.name}`;
-				const filePath = join(mediaDir, fileName);
-
-				const arrayBuffer = await value.arrayBuffer();
-				await writeFile(filePath, Buffer.from(arrayBuffer));
-
-				// Store relative path
-				fieldValue = `media/registrations/${registration.id}/${fileName}`;
-			} else if (typeof value === "string") {
-				fieldValue = value;
-			}
-
-			fieldResponsesToInsert.push({
-				entityType: "registration",
-				entityId: registration.id,
-				fieldId: field.id,
-				value: fieldValue,
-			});
-		}
+		// Parse form data using the shared helper
+		const fieldEntries = await parseFieldResponses(
+			formData,
+			"registration",
+			undefined, // No specific entity ID for registration fields
+			`registrations/${registration.id}`,
+			["username", "password", "email", "phone"],
+		);
 
 		// Insert all field responses
-		if (fieldResponsesToInsert.length > 0) {
-			await db.insert(fieldResponses).values(fieldResponsesToInsert);
+		if (fieldEntries.length > 0) {
+			await db.insert(fieldResponses).values(
+				fieldEntries.map((entry) => ({
+					entityType: "registration" as const,
+					entityId: registration.id,
+					fieldId: entry.fieldId,
+					value: entry.value,
+					iteration: entry.iteration,
+				})),
+			);
 		}
 
 		if (process.env.NODE_ENV === "production") {
@@ -312,3 +264,9 @@ export const rejectRegistration = createServerFn({ method: "POST" })
 			);
 		}
 	});
+
+export const getPublicRegistrationFields = createServerFn({
+	method: "GET",
+}).handler(async () => {
+	return await fetchFieldsFromDb("registration", false);
+});

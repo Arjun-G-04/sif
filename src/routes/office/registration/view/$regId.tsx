@@ -204,7 +204,6 @@ function RegistrationDetailPage() {
 								</h2>
 								<FieldResponsesDisplay
 									responses={reg.responses}
-									entityId={reg.id}
 									emptyMessage="No dynamic field responses."
 								/>
 							</div>

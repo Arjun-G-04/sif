@@ -12,11 +12,17 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RegistrationIndexRouteImport } from './routes/registration/index'
 import { Route as OfficeIndexRouteImport } from './routes/office/index'
+import { Route as BookIndexRouteImport } from './routes/book/index'
+import { Route as BookEqIdRouteImport } from './routes/book/$eqId'
 import { Route as OfficeConfigurationIndexRouteImport } from './routes/office/configuration/index'
 import { Route as ApiFileIndexRouteImport } from './routes/api/file/index'
 import { Route as OfficeRegistrationViewIndexRouteImport } from './routes/office/registration/view/index'
 import { Route as OfficeRegistrationEditIndexRouteImport } from './routes/office/registration/edit/index'
+import { Route as OfficeEquipmentEditIndexRouteImport } from './routes/office/equipment/edit/index'
+import { Route as OfficeBookingViewIndexRouteImport } from './routes/office/booking/view/index'
 import { Route as OfficeRegistrationViewRegIdRouteImport } from './routes/office/registration/view/$regId'
+import { Route as OfficeEquipmentEditEqIdRouteImport } from './routes/office/equipment/edit/$eqId'
+import { Route as OfficeBookingViewBookingIdRouteImport } from './routes/office/booking/view/$bookingId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -31,6 +37,16 @@ const RegistrationIndexRoute = RegistrationIndexRouteImport.update({
 const OfficeIndexRoute = OfficeIndexRouteImport.update({
   id: '/office/',
   path: '/office/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BookIndexRoute = BookIndexRouteImport.update({
+  id: '/book/',
+  path: '/book/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BookEqIdRoute = BookEqIdRouteImport.update({
+  id: '/book/$eqId',
+  path: '/book/$eqId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OfficeConfigurationIndexRoute =
@@ -56,41 +72,81 @@ const OfficeRegistrationEditIndexRoute =
     path: '/office/registration/edit/',
     getParentRoute: () => rootRouteImport,
   } as any)
+const OfficeEquipmentEditIndexRoute =
+  OfficeEquipmentEditIndexRouteImport.update({
+    id: '/office/equipment/edit/',
+    path: '/office/equipment/edit/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const OfficeBookingViewIndexRoute = OfficeBookingViewIndexRouteImport.update({
+  id: '/office/booking/view/',
+  path: '/office/booking/view/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OfficeRegistrationViewRegIdRoute =
   OfficeRegistrationViewRegIdRouteImport.update({
     id: '/office/registration/view/$regId',
     path: '/office/registration/view/$regId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const OfficeEquipmentEditEqIdRoute = OfficeEquipmentEditEqIdRouteImport.update({
+  id: '/office/equipment/edit/$eqId',
+  path: '/office/equipment/edit/$eqId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OfficeBookingViewBookingIdRoute =
+  OfficeBookingViewBookingIdRouteImport.update({
+    id: '/office/booking/view/$bookingId',
+    path: '/office/booking/view/$bookingId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/book/$eqId': typeof BookEqIdRoute
+  '/book': typeof BookIndexRoute
   '/office': typeof OfficeIndexRoute
   '/registration': typeof RegistrationIndexRoute
   '/api/file': typeof ApiFileIndexRoute
   '/office/configuration': typeof OfficeConfigurationIndexRoute
+  '/office/booking/view/$bookingId': typeof OfficeBookingViewBookingIdRoute
+  '/office/equipment/edit/$eqId': typeof OfficeEquipmentEditEqIdRoute
   '/office/registration/view/$regId': typeof OfficeRegistrationViewRegIdRoute
+  '/office/booking/view': typeof OfficeBookingViewIndexRoute
+  '/office/equipment/edit': typeof OfficeEquipmentEditIndexRoute
   '/office/registration/edit': typeof OfficeRegistrationEditIndexRoute
   '/office/registration/view': typeof OfficeRegistrationViewIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/book/$eqId': typeof BookEqIdRoute
+  '/book': typeof BookIndexRoute
   '/office': typeof OfficeIndexRoute
   '/registration': typeof RegistrationIndexRoute
   '/api/file': typeof ApiFileIndexRoute
   '/office/configuration': typeof OfficeConfigurationIndexRoute
+  '/office/booking/view/$bookingId': typeof OfficeBookingViewBookingIdRoute
+  '/office/equipment/edit/$eqId': typeof OfficeEquipmentEditEqIdRoute
   '/office/registration/view/$regId': typeof OfficeRegistrationViewRegIdRoute
+  '/office/booking/view': typeof OfficeBookingViewIndexRoute
+  '/office/equipment/edit': typeof OfficeEquipmentEditIndexRoute
   '/office/registration/edit': typeof OfficeRegistrationEditIndexRoute
   '/office/registration/view': typeof OfficeRegistrationViewIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/book/$eqId': typeof BookEqIdRoute
+  '/book/': typeof BookIndexRoute
   '/office/': typeof OfficeIndexRoute
   '/registration/': typeof RegistrationIndexRoute
   '/api/file/': typeof ApiFileIndexRoute
   '/office/configuration/': typeof OfficeConfigurationIndexRoute
+  '/office/booking/view/$bookingId': typeof OfficeBookingViewBookingIdRoute
+  '/office/equipment/edit/$eqId': typeof OfficeEquipmentEditEqIdRoute
   '/office/registration/view/$regId': typeof OfficeRegistrationViewRegIdRoute
+  '/office/booking/view/': typeof OfficeBookingViewIndexRoute
+  '/office/equipment/edit/': typeof OfficeEquipmentEditIndexRoute
   '/office/registration/edit/': typeof OfficeRegistrationEditIndexRoute
   '/office/registration/view/': typeof OfficeRegistrationViewIndexRoute
 }
@@ -98,42 +154,66 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/book/$eqId'
+    | '/book'
     | '/office'
     | '/registration'
     | '/api/file'
     | '/office/configuration'
+    | '/office/booking/view/$bookingId'
+    | '/office/equipment/edit/$eqId'
     | '/office/registration/view/$regId'
+    | '/office/booking/view'
+    | '/office/equipment/edit'
     | '/office/registration/edit'
     | '/office/registration/view'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/book/$eqId'
+    | '/book'
     | '/office'
     | '/registration'
     | '/api/file'
     | '/office/configuration'
+    | '/office/booking/view/$bookingId'
+    | '/office/equipment/edit/$eqId'
     | '/office/registration/view/$regId'
+    | '/office/booking/view'
+    | '/office/equipment/edit'
     | '/office/registration/edit'
     | '/office/registration/view'
   id:
     | '__root__'
     | '/'
+    | '/book/$eqId'
+    | '/book/'
     | '/office/'
     | '/registration/'
     | '/api/file/'
     | '/office/configuration/'
+    | '/office/booking/view/$bookingId'
+    | '/office/equipment/edit/$eqId'
     | '/office/registration/view/$regId'
+    | '/office/booking/view/'
+    | '/office/equipment/edit/'
     | '/office/registration/edit/'
     | '/office/registration/view/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BookEqIdRoute: typeof BookEqIdRoute
+  BookIndexRoute: typeof BookIndexRoute
   OfficeIndexRoute: typeof OfficeIndexRoute
   RegistrationIndexRoute: typeof RegistrationIndexRoute
   ApiFileIndexRoute: typeof ApiFileIndexRoute
   OfficeConfigurationIndexRoute: typeof OfficeConfigurationIndexRoute
+  OfficeBookingViewBookingIdRoute: typeof OfficeBookingViewBookingIdRoute
+  OfficeEquipmentEditEqIdRoute: typeof OfficeEquipmentEditEqIdRoute
   OfficeRegistrationViewRegIdRoute: typeof OfficeRegistrationViewRegIdRoute
+  OfficeBookingViewIndexRoute: typeof OfficeBookingViewIndexRoute
+  OfficeEquipmentEditIndexRoute: typeof OfficeEquipmentEditIndexRoute
   OfficeRegistrationEditIndexRoute: typeof OfficeRegistrationEditIndexRoute
   OfficeRegistrationViewIndexRoute: typeof OfficeRegistrationViewIndexRoute
 }
@@ -159,6 +239,20 @@ declare module '@tanstack/react-router' {
       path: '/office'
       fullPath: '/office'
       preLoaderRoute: typeof OfficeIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/book/': {
+      id: '/book/'
+      path: '/book'
+      fullPath: '/book'
+      preLoaderRoute: typeof BookIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/book/$eqId': {
+      id: '/book/$eqId'
+      path: '/book/$eqId'
+      fullPath: '/book/$eqId'
+      preLoaderRoute: typeof BookEqIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/office/configuration/': {
@@ -189,6 +283,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OfficeRegistrationEditIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/office/equipment/edit/': {
+      id: '/office/equipment/edit/'
+      path: '/office/equipment/edit'
+      fullPath: '/office/equipment/edit'
+      preLoaderRoute: typeof OfficeEquipmentEditIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/office/booking/view/': {
+      id: '/office/booking/view/'
+      path: '/office/booking/view'
+      fullPath: '/office/booking/view'
+      preLoaderRoute: typeof OfficeBookingViewIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/office/registration/view/$regId': {
       id: '/office/registration/view/$regId'
       path: '/office/registration/view/$regId'
@@ -196,16 +304,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OfficeRegistrationViewRegIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/office/equipment/edit/$eqId': {
+      id: '/office/equipment/edit/$eqId'
+      path: '/office/equipment/edit/$eqId'
+      fullPath: '/office/equipment/edit/$eqId'
+      preLoaderRoute: typeof OfficeEquipmentEditEqIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/office/booking/view/$bookingId': {
+      id: '/office/booking/view/$bookingId'
+      path: '/office/booking/view/$bookingId'
+      fullPath: '/office/booking/view/$bookingId'
+      preLoaderRoute: typeof OfficeBookingViewBookingIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BookEqIdRoute: BookEqIdRoute,
+  BookIndexRoute: BookIndexRoute,
   OfficeIndexRoute: OfficeIndexRoute,
   RegistrationIndexRoute: RegistrationIndexRoute,
   ApiFileIndexRoute: ApiFileIndexRoute,
   OfficeConfigurationIndexRoute: OfficeConfigurationIndexRoute,
+  OfficeBookingViewBookingIdRoute: OfficeBookingViewBookingIdRoute,
+  OfficeEquipmentEditEqIdRoute: OfficeEquipmentEditEqIdRoute,
   OfficeRegistrationViewRegIdRoute: OfficeRegistrationViewRegIdRoute,
+  OfficeBookingViewIndexRoute: OfficeBookingViewIndexRoute,
+  OfficeEquipmentEditIndexRoute: OfficeEquipmentEditIndexRoute,
   OfficeRegistrationEditIndexRoute: OfficeRegistrationEditIndexRoute,
   OfficeRegistrationViewIndexRoute: OfficeRegistrationViewIndexRoute,
 }
