@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { FieldDialog } from "@/components/office/fieldDialog";
 import { FieldsView } from "@/components/office/fieldsView";
 import { Header } from "@/components/office/header";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { requireAdmin } from "@/lib/auth";
 import { getEquipmentNameById } from "@/services/equipment";
 import { getFields } from "@/services/field";
@@ -56,26 +57,82 @@ function EquipmentFieldsPage() {
 								Manage custom fields for this equipment.
 							</p>
 						</div>
-						<FieldDialog
-							entityType="equipment"
-							entityId={eqId}
-							allowedRelations={[
-								{
-									entityType: "registration",
-									label: "Registration",
-								},
-							]}
-						/>
 					</div>
-					<FieldsView
-						fields={fieldsQuery.data}
-						allowedRelations={[
-							{
-								entityType: "registration",
-								label: "Registration",
-							},
-						]}
-					/>
+
+					<Tabs defaultValue="initial" className="w-full space-y-6">
+						<TabsList className="bg-white border">
+							<TabsTrigger
+								value="initial"
+								className="data-[state=active]:bg-slate-100"
+							>
+								Initial Booking Fields
+							</TabsTrigger>
+							<TabsTrigger
+								value="payment"
+								className="data-[state=active]:bg-slate-100"
+							>
+								Payment Stage Fields
+							</TabsTrigger>
+						</TabsList>
+
+						<TabsContent
+							value="initial"
+							className="space-y-6 outline-none"
+						>
+							<div className="flex justify-end">
+								<FieldDialog
+									entityType="equipment"
+									entityId={eqId}
+									stage="initial"
+									allowedRelations={[
+										{
+											entityType: "registration",
+											label: "Registration",
+										},
+									]}
+								/>
+							</div>
+							<FieldsView
+								fields={fieldsQuery.data}
+								stage="initial"
+								allowedRelations={[
+									{
+										entityType: "registration",
+										label: "Registration",
+									},
+								]}
+							/>
+						</TabsContent>
+
+						<TabsContent
+							value="payment"
+							className="space-y-6 outline-none"
+						>
+							<div className="flex justify-end">
+								<FieldDialog
+									entityType="equipment"
+									entityId={eqId}
+									stage="payment"
+									allowedRelations={[
+										{
+											entityType: "registration",
+											label: "Registration",
+										},
+									]}
+								/>
+							</div>
+							<FieldsView
+								fields={fieldsQuery.data}
+								stage="payment"
+								allowedRelations={[
+									{
+										entityType: "registration",
+										label: "Registration",
+									},
+								]}
+							/>
+						</TabsContent>
+					</Tabs>
 				</div>
 			</main>
 		</div>

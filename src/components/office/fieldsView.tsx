@@ -26,7 +26,7 @@ import type { Field } from "@/services/field";
 import { toggleFieldActive } from "@/services/field";
 import { FieldDialog } from "./fieldDialog";
 import { Fragment } from "react";
-import type { entityType as entityTypeDef } from "@/db/schema";
+import type { entityType as entityTypeDef, fieldStage } from "@/db/schema";
 
 export type AllowedRelation = {
 	entityType: (typeof entityTypeDef.enumValues)[number];
@@ -36,10 +36,19 @@ export type AllowedRelation = {
 interface FieldsViewProps {
 	fields: Field[];
 	allowedRelations?: AllowedRelation;
+	stage?: (typeof fieldStage.enumValues)[number];
 }
 
-export function FieldsView({ fields, allowedRelations }: FieldsViewProps) {
+export function FieldsView({
+	fields,
+	allowedRelations,
+	stage,
+}: FieldsViewProps) {
 	const queryClient = useQueryClient();
+
+	const filteredFields = stage
+		? fields.filter((f) => f.stage === stage)
+		: fields;
 
 	const toggleMutation = useMutation({
 		mutationFn: ({ id, active }: { id: number; active: boolean }) =>
@@ -152,6 +161,7 @@ export function FieldsView({ fields, allowedRelations }: FieldsViewProps) {
 					<FieldDialog
 						entityType={field.entityType}
 						field={field}
+						stage={stage}
 						allowedRelations={allowedRelations}
 						trigger={
 							<Button
@@ -256,7 +266,7 @@ export function FieldsView({ fields, allowedRelations }: FieldsViewProps) {
 						</TableHead>
 					</TableRow>
 				</TableHeader>
-				<TableBody>{renderFields(fields)}</TableBody>
+				<TableBody>{renderFields(filteredFields)}</TableBody>
 			</Table>
 		</div>
 	);

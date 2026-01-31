@@ -68,7 +68,7 @@ export function Login() {
 			<CardContent className="px-6 pb-8">
 				<form onSubmit={handleSubmit} className="space-y-5">
 					<Field>
-						<FieldLabel htmlFor="username">Username</FieldLabel>
+						<FieldLabel htmlFor="username">Email</FieldLabel>
 						<div className="relative">
 							<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
 								<UserIcon />
@@ -79,7 +79,7 @@ export function Login() {
 								value={username}
 								onChange={(e) => setUsername(e.target.value)}
 								className="pl-10 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all focus:ring-blue-500/20"
-								placeholder="Enter your username"
+								placeholder="Enter your registered email"
 								required
 							/>
 						</div>

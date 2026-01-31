@@ -9,8 +9,9 @@ import {
 	fieldOptions,
 	fieldRelations,
 	fields,
+	type fieldStage,
 } from "../../db/schema";
-import { requireAdmin } from "../../lib/auth";
+import { requireAdmin, requireUser, verifyAuth } from "../../lib/auth";
 import { safeParseAndThrow } from "../../lib/utils";
 import { GetFieldsInput } from "./schemas";
 import type { Field } from "./types";
@@ -18,8 +19,9 @@ import type { Field } from "./types";
 export const fetchFieldsFromDb = createServerOnlyFn(
 	async (
 		type: (typeof entityType.enumValues)[number],
-		includeInactive = false,
+		includeInactive: boolean = false,
 		id?: number,
+		stage?: (typeof fieldStage.enumValues)[number],
 	) => {
 		const rows = await db
 			.select({
@@ -38,6 +40,7 @@ export const fetchFieldsFromDb = createServerOnlyFn(
 				and(
 					eq(fields.entityType, type),
 					id ? eq(fields.entityId, id) : undefined,
+					stage ? eq(fields.stage, stage) : undefined,
 					includeInactive ? undefined : eq(fields.active, true),
 				),
 			)
@@ -119,14 +122,20 @@ export const fetchFieldsFromDb = createServerOnlyFn(
 export const getFields = createServerFn({ method: "GET" })
 	.inputValidator(GetFieldsInput)
 	.handler(async ({ data }) => {
-		await requireAdmin();
+		const auth = await verifyAuth();
 
 		const parsedData = safeParseAndThrow(data, GetFieldsInput);
 
+		// Allow registration fields to be fetched without authentication
+		if (parsedData.entityType !== "registration" && !auth.authenticated) {
+			await requireUser();
+		}
+
 		return await fetchFieldsFromDb(
 			parsedData.entityType,
-			true,
+			auth.user?.admin ?? false,
 			parsedData.entityId,
+			parsedData.stage,
 		);
 	});
 

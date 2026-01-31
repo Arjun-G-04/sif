@@ -43,6 +43,13 @@
       "when": 1767938698138,
       "tag": "0005_sweet_enchantress",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1769868700555,
+      "tag": "0006_careful_praxagora",
+      "breakpoints": true
     }
   ]
 }

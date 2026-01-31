@@ -12,11 +12,7 @@ import {
 } from "../db/schema";
 import { requireAdmin } from "../lib/auth";
 import { safeParseAndThrow } from "../lib/utils";
-import {
-	fetchFieldsFromDb,
-	getFieldResponses,
-	parseFieldResponses,
-} from "./field";
+import { getFieldResponses, parseFieldResponses } from "./field";
 import { getConfigHelper } from "./configuration";
 
 export const submitRegistration = createServerFn({ method: "POST" })
@@ -264,9 +260,3 @@ export const rejectRegistration = createServerFn({ method: "POST" })
 			);
 		}
 	});
-
-export const getPublicRegistrationFields = createServerFn({
-	method: "GET",
-}).handler(async () => {
-	return await fetchFieldsFromDb("registration", false);
-});

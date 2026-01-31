@@ -22,7 +22,11 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
-import { type entityType as entityTypeDef, fieldType } from "@/db/schema";
+import {
+	type entityType as entityTypeDef,
+	type fieldStage,
+	fieldType,
+} from "@/db/schema";
 import {
 	createField,
 	type Field,
@@ -40,6 +44,7 @@ interface FieldDialogProps {
 	entityType: (typeof entityTypeDef.enumValues)[number];
 	entityId?: number;
 	field?: Field;
+	stage?: (typeof fieldStage.enumValues)[number];
 	trigger?: React.ReactNode;
 	allowedRelations?: AllowedRelation;
 }
@@ -48,6 +53,7 @@ export function FieldDialog({
 	entityType,
 	entityId,
 	field,
+	stage: initialStage = "initial",
 	trigger,
 	allowedRelations = [],
 }: FieldDialogProps) {
@@ -56,6 +62,7 @@ export function FieldDialog({
 	const [name, setName] = useState(field?.name || "");
 	const [type, setType] = useState<FieldType>(field?.type || "text");
 	const [order, setOrder] = useState(field?.order || 0);
+	const [stage, setStage] = useState(field?.stage || initialStage);
 	const [options, setOptions] = useState<{ id: string; value: string }[]>(
 		field?.type === "single_select" && field.options
 			? field.options.map((o) => ({
@@ -102,9 +109,10 @@ export function FieldDialog({
 		setGroupMax(1);
 		setAdminFileConfig(null);
 		setPendingFile(null);
+		setStage(initialStage);
 		setRelatedEntityType("");
 		setRelatedFieldId("");
-	}, []);
+	}, [initialStage]);
 
 	useEffect(() => {
 		if (open) {
@@ -112,6 +120,7 @@ export function FieldDialog({
 				setName(field.name);
 				setType(field.type);
 				setOrder(field.order);
+				setStage(field.stage || "initial");
 				setParentId(field.parentId ? String(field.parentId) : "none");
 				if (field.type === "single_select" && field.options) {
 					setOptions(
@@ -155,10 +164,12 @@ export function FieldDialog({
 
 	// Fetch all fields so that if there is one or more group type fields, we can show the option of setting the parent for this field.
 	const { data: allFields } = useQuery({
-		queryKey: ["fields", entityType, entityId ?? "global"],
-		queryFn: () => getFields({ data: { entityType, entityId } }),
+		queryKey: ["fields", entityType, entityId ?? "global", initialStage],
+		queryFn: () =>
+			getFields({ data: { entityType, entityId, stage: initialStage } }),
 		enabled: open,
 	});
+
 	const groupFields = allFields?.filter(
 		(f) => f.type === "group" && f.id !== field?.id, // Prevent self-parenting
 	);
@@ -263,6 +274,7 @@ export function FieldDialog({
 			name,
 			type,
 			order,
+			stage,
 			options:
 				type === "single_select"
 					? options.map((o) => o.value)

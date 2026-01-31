@@ -1,9 +1,6 @@
 import { redirect } from "@tanstack/react-router";
 import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
-import {
-	getRequestHeader,
-	setResponseHeader,
-} from "@tanstack/react-start/server";
+import { getRequest, setResponseHeader } from "@tanstack/react-start/server";
 import { compare } from "bcrypt";
 import { and, eq } from "drizzle-orm";
 import jwt from "jsonwebtoken";
@@ -139,9 +136,9 @@ export const verifyAuth = createServerFn({ method: "GET" }).handler(
 			return { authenticated: false, user: null };
 		}
 
-		const cookieHeader = getRequestHeader("Cookie") || "";
+		const cookieHeader = getRequest()?.headers.get("Cookie") || "";
 		const cookies = Object.fromEntries(
-			cookieHeader.split("; ").map((c) => {
+			cookieHeader.split("; ").map((c: string) => {
 				const [key, ...val] = c.split("=");
 				return [key, val.join("=")];
 			}),

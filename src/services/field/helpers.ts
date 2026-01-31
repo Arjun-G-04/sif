@@ -1,5 +1,5 @@
 import { createServerOnlyFn } from "@tanstack/react-start";
-import { and, eq } from "drizzle-orm";
+import { and, eq, aliasedTable } from "drizzle-orm";
 import { saveUploadedFile } from "@/lib/files";
 import { db } from "../../db";
 import { type entityType, fieldResponses, fields } from "../../db/schema";
@@ -80,13 +80,16 @@ export const getFieldResponses = createServerOnlyFn(
 		entityId: number,
 		bookingId?: number,
 	) => {
+		const parentFields = aliasedTable(fields, "parentFields");
 		const rows = await db
 			.select({
 				response: fieldResponses,
 				field: fields,
+				parentOrder: parentFields.order,
 			})
 			.from(fieldResponses)
 			.leftJoin(fields, eq(fieldResponses.fieldId, fields.id))
+			.leftJoin(parentFields, eq(fields.parentId, parentFields.id))
 			.where(
 				and(
 					eq(fieldResponses.entityType, type),
@@ -111,7 +114,12 @@ export const getFieldResponses = createServerOnlyFn(
 				fieldName: row.field.name,
 				fieldType: row.field.type,
 				value: row.response.value,
+				adminValue: row.response.adminValue,
 				iteration: row.response.iteration,
+				order: row.field.order,
+				stage: row.field.stage,
+				parentId: row.field.parentId,
+				parentOrder: row.parentOrder,
 			}));
 	},
 );

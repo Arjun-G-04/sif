@@ -19,14 +19,12 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import {
-	getPublicRegistrationFields,
-	submitRegistration,
-} from "@/services/registration";
+import { getFields } from "@/services/field";
+import { submitRegistration } from "@/services/registration";
 
 export const publicFieldsQueryOptions = queryOptions({
 	queryKey: ["fields", "public", "registration"],
-	queryFn: () => getPublicRegistrationFields(),
+	queryFn: () => getFields({ data: { entityType: "registration" } }),
 });
 
 export const Route = createFileRoute("/registration/")({

@@ -1,7 +1,6 @@
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Eye } from "lucide-react";
-import { Header } from "@/components/office/header";
 import { Button } from "@/components/ui/button";
 import {
 	Table,
@@ -11,26 +10,28 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { requireAdmin } from "@/lib/auth";
-import { getBookings } from "@/services/booking";
+import { requireUser } from "@/lib/auth";
+import { getUserBookings } from "@/services/booking";
+import { Header } from "@/components/user/header";
+import { Separator } from "@/components/ui/separator";
 
-export const bookingsQueryOptions = queryOptions({
-	queryKey: ["bookings"],
-	queryFn: () => getBookings(),
+export const userBookingsQueryOptions = queryOptions({
+	queryKey: ["user-bookings"],
+	queryFn: () => getUserBookings(),
 });
 
-export const Route = createFileRoute("/office/booking/view/")({
-	component: BookingViewPage,
+export const Route = createFileRoute("/bookings/")({
+	component: UserBookingsPage,
 	loader: async ({ context }) => {
-		const user = await requireAdmin();
-		await context.queryClient.ensureQueryData(bookingsQueryOptions);
-		return user;
+		const user = await requireUser();
+		await context.queryClient.ensureQueryData(userBookingsQueryOptions);
+		return { user };
 	},
 });
 
-function BookingViewPage() {
-	const user = Route.useLoaderData();
-	const bookings = useSuspenseQuery(bookingsQueryOptions);
+function UserBookingsPage() {
+	const { user } = Route.useLoaderData();
+	const bookings = useSuspenseQuery(userBookingsQueryOptions);
 	const navigate = useNavigate();
 
 	const formatDate = (date: Date | string | null) => {
@@ -47,27 +48,27 @@ function BookingViewPage() {
 
 	return (
 		<div className="min-h-screen flex flex-col bg-slate-50/50">
-			<Header user={user} backTo="/office" />
+			<Header user={user} backTo="/" />
+
 			<main className="flex-1 p-4 md:p-6 lg:p-8">
-				<div className="w-full space-y-6">
-					<div>
-						<h2 className="text-2xl font-bold tracking-tight text-slate-900">
-							Bookings
-						</h2>
-						<p className="text-slate-500">
-							View and manage equipment bookings.
+				<div className="w-full space-y-8">
+					<div className="space-y-2">
+						<h1 className="text-3xl font-bold tracking-tight text-slate-900">
+							My Bookings
+						</h1>
+						<p className="text-slate-500 text-lg">
+							Track the status of your equipment bookings.
 						</p>
 					</div>
 
-					<div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+					<Separator className="bg-slate-200" />
+
+					<div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
 						<Table>
 							<TableHeader>
 								<TableRow className="bg-slate-50">
 									<TableHead className="font-semibold">
 										Booking No.
-									</TableHead>
-									<TableHead className="font-semibold">
-										User
 									</TableHead>
 									<TableHead className="font-semibold">
 										Equipment
@@ -76,10 +77,10 @@ function BookingViewPage() {
 										Status
 									</TableHead>
 									<TableHead className="font-semibold">
-										Created At
+										Date
 									</TableHead>
-									<TableHead className="font-semibold">
-										Actions
+									<TableHead className="font-semibold text-right">
+										Action
 									</TableHead>
 								</TableRow>
 							</TableHeader>
@@ -90,7 +91,7 @@ function BookingViewPage() {
 											colSpan={5}
 											className="h-32 text-center text-slate-500"
 										>
-											No bookings found.
+											You haven't made any bookings yet.
 										</TableCell>
 									</TableRow>
 								) : (
@@ -100,7 +101,7 @@ function BookingViewPage() {
 											className="cursor-pointer hover:bg-slate-50/80 transition-colors"
 											onClick={() =>
 												navigate({
-													to: "/office/booking/view/$bookingId",
+													to: "/bookings/$bookingId",
 													params: {
 														bookingId: String(
 															booking.id,
@@ -109,18 +110,17 @@ function BookingViewPage() {
 												})
 											}
 										>
-											<TableCell>{booking.id}</TableCell>
-											<TableCell>
-												{booking.userEmail ?? "-"}
+											<TableCell className="font-medium">
+												#{booking.id}
 											</TableCell>
 											<TableCell>
-												{booking.equipmentName ?? "-"}
+												{booking.equipmentName}
 											</TableCell>
 											<TableCell>
 												{booking.status ===
 													"payment" && (
 													<span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">
-														Payment
+														Payment Required
 													</span>
 												)}
 												{booking.status ===
@@ -132,7 +132,7 @@ function BookingViewPage() {
 												{booking.status ===
 													"pending" && (
 													<span className="inline-flex items-center rounded-md bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/10">
-														Pending
+														Under Review
 													</span>
 												)}
 												{booking.status ===
@@ -142,10 +142,10 @@ function BookingViewPage() {
 													</span>
 												)}
 											</TableCell>
-											<TableCell>
+											<TableCell className="text-slate-500">
 												{formatDate(booking.createdAt)}
 											</TableCell>
-											<TableCell>
+											<TableCell className="text-right">
 												<Button
 													variant="ghost"
 													size="sm"

@@ -3,8 +3,8 @@ import { join } from "node:path";
 import { createFileRoute } from "@tanstack/react-router";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { fieldAdminFiles, fieldResponses, fields } from "@/db/schema";
-import { requireAdmin, requireUser } from "@/lib/auth";
+import { fieldAdminFiles, fieldResponses, fields, users } from "@/db/schema";
+import { requireUser } from "@/lib/auth";
 import { MEDIA_BASE } from "@/lib/files";
 
 // Helper to get MIME type
@@ -78,8 +78,21 @@ export const Route = createFileRoute("/api/file/")({
 					filePath = adminFile.filePath;
 					fileName = adminFile.originalName;
 				} else {
-					// Response file: accessible only by admin
-					await requireAdmin();
+					// Response file: accessible by owner or admin
+					const authUser = await requireUser();
+
+					const [dbUser] = await db
+						.select({
+							id: users.id,
+							registrationId: users.registrationId,
+						})
+						.from(users)
+						.where(eq(users.username, authUser.username))
+						.limit(1);
+
+					if (!dbUser) {
+						throw new Error("User not found");
+					}
 
 					// responseIdParam is guaranteed to be non-null here due to earlier checks
 					const responseId = Number.parseInt(
@@ -100,6 +113,9 @@ export const Route = createFileRoute("/api/file/")({
 						.select({
 							value: fieldResponses.value,
 							fieldType: fields.type,
+							userId: fieldResponses.userId,
+							entityType: fieldResponses.entityType,
+							entityId: fieldResponses.entityId,
 						})
 						.from(fieldResponses)
 						.leftJoin(fields, eq(fieldResponses.fieldId, fields.id))
@@ -113,6 +129,17 @@ export const Route = createFileRoute("/api/file/")({
 						return new Response("Field is not a file type", {
 							status: 400,
 						});
+					}
+
+					// Permission Check
+					const isAdmin = authUser.admin;
+					const isOwner = response.userId === dbUser.id;
+					const isRegistrationOwner =
+						response.entityType === "registration" &&
+						response.entityId === dbUser.registrationId;
+
+					if (!isAdmin && !isOwner && !isRegistrationOwner) {
+						throw new Error("Unauthorized access to this file");
 					}
 
 					filePath = response.value;

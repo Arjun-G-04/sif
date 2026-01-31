@@ -52,6 +52,7 @@ export const createField = createServerFn({ method: "POST" })
 					name: parsedData.name,
 					type: parsedData.type,
 					order: parsedData.order,
+					stage: parsedData.stage,
 				})
 				.returning({ id: fields.id });
 
@@ -119,6 +120,7 @@ export const updateField = createServerFn({ method: "POST" })
 					name: parsedData.name,
 					type: parsedData.type,
 					order: parsedData.order,
+					stage: parsedData.stage,
 				})
 				.where(eq(fields.id, parsedData.id));
 

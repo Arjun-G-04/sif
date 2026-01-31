@@ -1,5 +1,5 @@
 import * as z from "zod";
-import { entityType, fieldType } from "../../db/schema";
+import { entityType, fieldStage, fieldType } from "../../db/schema";
 
 export const CreateFieldInput = z.object({
 	entityType: z.enum(entityType.enumValues, "Invalid entity type"),
@@ -8,6 +8,7 @@ export const CreateFieldInput = z.object({
 	name: z.string().min(1, "Field name is required"),
 	type: z.enum(fieldType.enumValues, "Invalid field type"),
 	order: z.number().int().default(0),
+	stage: z.enum(fieldStage.enumValues).default("initial"),
 	options: z.array(z.string()).optional(),
 	relation: z
 		.object({
@@ -36,6 +37,7 @@ export const UpdateFieldInput = z.object({
 	name: z.string().min(1, "Field name is required"),
 	type: z.enum(fieldType.enumValues, "Invalid field type"),
 	order: z.number().int().default(0),
+	stage: z.enum(fieldStage.enumValues).default("initial"),
 	options: z.array(z.string()).optional(),
 	relation: z
 		.object({
@@ -67,4 +69,5 @@ export const ToggleFieldActiveInput = z.object({
 export const GetFieldsInput = z.object({
 	entityType: z.enum(entityType.enumValues, "Invalid entity type"),
 	entityId: z.number().int().optional(),
+	stage: z.enum(fieldStage.enumValues).optional(),
 });

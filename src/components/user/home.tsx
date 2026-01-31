@@ -1,4 +1,5 @@
 import { WrenchIcon } from "@/components/svgs";
+import { Calendar } from "lucide-react";
 import {
 	Card,
 	CardHeader,
@@ -22,6 +23,19 @@ const DASHBOARD_ITEMS = [
 			{
 				to: "/book",
 				label: "View available equipments",
+			},
+		],
+	},
+	{
+		title: "Bookings",
+		description: "Your equipment bookings",
+		icon: Calendar,
+		iconColor: "text-emerald-600",
+		iconBg: "bg-emerald-50",
+		actions: [
+			{
+				to: "/bookings",
+				label: "View my bookings",
 			},
 		],
 	},

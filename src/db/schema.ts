@@ -9,6 +9,12 @@ import {
 } from "drizzle-orm/pg-core";
 
 export const userRole = pgEnum("user_role", ["public", "admin"]);
+export const bookingStatus = pgEnum("booking_status", [
+	"pending",
+	"payment",
+	"processing",
+	"rejected",
+]);
 
 export const users = pgTable("users", {
 	id: serial().primaryKey(),
@@ -71,6 +77,8 @@ export const fieldType = pgEnum("field_type", [
 
 export const entityType = pgEnum("entity_type", ["registration", "equipment"]);
 
+export const fieldStage = pgEnum("field_stage", ["initial", "payment"]);
+
 export const fields = pgTable("fields", {
 	id: serial().primaryKey(),
 	entityType: entityType("entity_type").notNull(),
@@ -79,6 +87,7 @@ export const fields = pgTable("fields", {
 	name: text().notNull(),
 	type: fieldType().notNull(),
 	order: integer().notNull().default(0),
+	stage: fieldStage().notNull().default("initial"),
 	active: boolean().notNull().default(true),
 });
 
@@ -129,6 +138,10 @@ export const bookings = pgTable("bookings", {
 	equipmentId: integer("equipment_id")
 		.notNull()
 		.references(() => equipments.id, { onDelete: "cascade" }),
+	status: bookingStatus().notNull().default("pending"),
+	price: integer(),
+	remarks: text(),
+	rejectionReason: text("rejection_reason"),
 	createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -146,4 +159,5 @@ export const fieldResponses = pgTable("field_responses", {
 		.references(() => fields.id, { onDelete: "cascade" }),
 	iteration: integer().notNull().default(0), // For grouped fields, which iteration is this?
 	value: text(), // Stores all values as text (dates as ISO strings, files as paths/URLs)
+	adminValue: text("admin_value"), // Admin-edited value
 });

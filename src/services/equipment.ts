@@ -116,6 +116,7 @@ export const getEquipmentFields = createServerFn({ method: "GET" })
 			"equipment",
 			false,
 			parsedData.equipmentId,
+			"initial",
 		);
 
 		const [dbUser] = await db
