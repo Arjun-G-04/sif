@@ -6,6 +6,7 @@ export {
 	CreateFieldInput,
 	UpdateFieldInput,
 	ToggleFieldActiveInput,
+	DeleteFieldInput,
 	GetFieldsInput,
 } from "./schemas";
 
@@ -14,6 +15,7 @@ export {
 	createField,
 	updateField,
 	toggleFieldActive,
+	deleteField,
 	uploadAdminFile,
 } from "./mutations";
 

@@ -9,7 +9,7 @@ import type {
 
 export type Field =
 	| (typeof fields.$inferSelect & {
-			type: "single_select";
+			type: "single_select" | "multi_select";
 			options: (typeof fieldOptions.$inferSelect)[];
 			relation?: undefined;
 			groupConfig?: undefined;
@@ -44,7 +44,11 @@ export type Field =
 	| (typeof fields.$inferSelect & {
 			type: Exclude<
 				(typeof fieldType.enumValues)[number],
-				"single_select" | "relation" | "group" | "admin_file"
+				| "single_select"
+				| "multi_select"
+				| "relation"
+				| "group"
+				| "admin_file"
 			>;
 			options?: undefined;
 			relation?: undefined;

@@ -50,6 +50,13 @@
       "when": 1769868700555,
       "tag": "0006_careful_praxagora",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1770040644093,
+      "tag": "0007_cultured_the_watchers",
+      "breakpoints": true
     }
   ]
 }

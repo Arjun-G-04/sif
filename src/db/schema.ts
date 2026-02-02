@@ -68,9 +68,11 @@ export const fieldType = pgEnum("field_type", [
 	"text",
 	"date",
 	"single_select",
+	"multi_select",
 	"file",
 	"relation",
 	"heading",
+	"info_text",
 	"group",
 	"admin_file",
 ]);

@@ -151,7 +151,7 @@ export function BookingFieldsEditor({
 						<Table>
 							<TableHeader>
 								<TableRow className="bg-slate-50/50">
-									<TableHead className="w-[30%] font-semibold">
+									<TableHead className="w-[30%] max-w-[250px] font-semibold">
 										Field Name
 									</TableHead>
 									<TableHead className="w-[35%] font-semibold">
@@ -191,7 +191,7 @@ export function BookingFieldsEditor({
 							<Table>
 								<TableHeader>
 									<TableRow className="bg-blue-50/50">
-										<TableHead className="w-[30%] font-semibold text-blue-900 border-blue-100">
+										<TableHead className="w-[30%] max-w-[250px] font-semibold text-blue-900 border-blue-100">
 											Field Name
 										</TableHead>
 										<TableHead className="w-[35%] font-semibold text-blue-900 border-blue-100">
@@ -244,7 +244,7 @@ function ResponseRow({
 				isPaymentStage ? "hover:bg-blue-50/30 border-blue-50" : ""
 			}
 		>
-			<TableCell className="font-medium text-slate-700">
+			<TableCell className="font-medium text-slate-700 max-w-[250px] overflow-hidden wrap-break-word whitespace-normal">
 				{resp.fieldName}
 				{(resp.iteration > 0 || resp.parentId !== null) && (
 					<span className="ml-1 text-xs text-slate-400">

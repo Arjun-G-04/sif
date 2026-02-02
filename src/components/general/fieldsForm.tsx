@@ -5,12 +5,15 @@ import {
 	CalendarIcon,
 	FileIcon,
 	ListIcon,
+	ListChecks,
 	TypeIcon,
 	LockIcon,
 	PlusIcon,
 	TrashIcon,
+	CheckCircle2,
+	Edit2,
 } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
 	useForm,
 	useFieldArray,
@@ -20,6 +23,7 @@ import {
 	type FieldErrors,
 	type Control,
 	type Path,
+	useWatch,
 } from "react-hook-form";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
@@ -38,6 +42,8 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { Checkbox } from "@/components/ui/checkbox";
+
 import type { Field as FieldType } from "@/services/field";
 
 interface FormProps {
@@ -50,6 +56,172 @@ interface FormProps {
 
 type FormValues = Record<string, unknown>; // Using unknown for dynamic keys
 
+function ValueShowcase({ field, value }: { field: FieldType; value: unknown }) {
+	if (
+		field.type === "heading" ||
+		field.type === "info_text" ||
+		field.type === "admin_file"
+	)
+		return null;
+
+	const formatValue = (f: FieldType, v: unknown): ReactNode => {
+		if (v === undefined || v === null || v === "")
+			return <span className="text-slate-400 italic">Not provided</span>;
+		if (f.type === "multi_select" && Array.isArray(v))
+			return v.length > 0 ? v.join(", ") : "None selected";
+		if (f.type === "file") {
+			if (v instanceof FileList && v.length > 0) return v[0].name;
+			if (v instanceof File) return v.name;
+			return "File uploaded";
+		}
+		return String(v);
+	};
+
+	if (field.type === "group" && Array.isArray(value)) {
+		return (
+			<div className="space-y-4 col-span-full">
+				<div className="text-sm font-bold text-slate-800 uppercase tracking-tight">
+					{field.name}
+				</div>
+				<div className="space-y-6 pl-4 border-l-2 border-blue-50">
+					{value.map((item, idx) => (
+						<div
+							key={`${field.id}_item_${idx}`}
+							className="space-y-3"
+						>
+							<div className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">
+								Item {idx + 1}
+							</div>
+							<div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
+								{field.children?.map((child) => (
+									<div key={child.id} className="space-y-1">
+										<div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+											{child.name}
+										</div>
+										<div className="text-base font-semibold text-slate-900">
+											{formatValue(child, item[child.id])}
+										</div>
+									</div>
+								))}
+							</div>
+						</div>
+					))}
+				</div>
+			</div>
+		);
+	}
+
+	return (
+		<div className="space-y-1">
+			<div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+				{field.name}
+			</div>
+			<div className="text-base font-semibold text-slate-900">
+				{formatValue(field, value)}
+			</div>
+		</div>
+	);
+}
+
+function ConfirmationStep({
+	fields,
+	data,
+	onConfirm,
+	onEdit,
+	isLoading,
+	submitText,
+}: {
+	fields: FieldType[];
+	data: FormValues;
+	onConfirm: () => void;
+	onEdit: () => void;
+	isLoading: boolean;
+	submitText: string;
+}) {
+	return (
+		<div className="space-y-8">
+			<div className="space-y-2 text-center sm:text-left">
+				<h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+					Review your details
+				</h2>
+				<p className="text-sm text-slate-500">
+					Please confirm the information below before submitting. You
+					can NOT edit this information after submission.
+				</p>
+			</div>
+
+			<div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+				<div className="p-6 sm:p-8 space-y-8">
+					<div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-8">
+						{fields.map((field) => {
+							if (field.type === "heading") {
+								return (
+									<div
+										key={field.id}
+										className="col-span-full pt-4 first:pt-0"
+									>
+										<h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">
+											{field.name}
+										</h3>
+									</div>
+								);
+							}
+							if (field.type === "info_text") {
+								return (
+									<div
+										key={field.id}
+										className="col-span-full pt-2 first:pt-0"
+									>
+										<p className="text-sm text-slate-700">
+											{field.name}
+										</p>
+									</div>
+								);
+							}
+							return (
+								<ValueShowcase
+									key={field.id}
+									field={field}
+									value={data[field.id]}
+								/>
+							);
+						})}
+					</div>
+				</div>
+				<div className="bg-slate-50 border-t border-slate-200 p-4 sm:p-6 flex flex-col sm:flex-row justify-between gap-4">
+					<Button
+						type="button"
+						variant="outline"
+						onClick={onEdit}
+						disabled={isLoading}
+						className="w-full sm:w-auto h-11 px-6"
+					>
+						<Edit2 className="mr-2 w-4 h-4" /> Back to Edit
+					</Button>
+					<Button
+						type="button"
+						onClick={onConfirm}
+						disabled={isLoading}
+						className="w-full sm:w-auto h-11 bg-blue-600 hover:bg-blue-700 text-white min-w-[200px]"
+					>
+						{isLoading ? (
+							<div className="flex items-center gap-2">
+								<Spinner className="w-4 h-4" />
+								Submitting...
+							</div>
+						) : (
+							<div className="flex items-center gap-2">
+								<CheckCircle2 className="w-4 h-4" />
+								Confirm & {submitText}
+							</div>
+						)}
+					</Button>
+				</div>
+			</div>
+		</div>
+	);
+}
+
 export function FieldsForm({
 	fields,
 	onSubmit,
@@ -57,13 +229,20 @@ export function FieldsForm({
 	isLoading,
 	submitText,
 }: FormProps) {
+	const [showConfirmation, setShowConfirmation] = useState(false);
+	const [confirmedData, setConfirmedData] = useState<FormValues | null>(null);
+
 	// Create dynamic schema
 	const dynamicSchema = useMemo(() => {
 		const buildSchemaForFields = (fieldsList: FieldType[]) => {
 			const schemaObject: Record<string, z.ZodTypeAny> = {};
 
 			for (const field of fieldsList) {
-				if (field.type === "heading" || field.type === "admin_file") {
+				if (
+					field.type === "heading" ||
+					field.type === "info_text" ||
+					field.type === "admin_file"
+				) {
 					continue;
 				}
 
@@ -88,6 +267,10 @@ export function FieldsForm({
 					fieldSchema = z
 						.string()
 						.min(1, `${field.name} is required`);
+				} else if (field.type === "multi_select") {
+					fieldSchema = z
+						.array(z.string())
+						.min(1, `Select at least one option for ${field.name}`);
 				} else if (field.type === "file") {
 					fieldSchema = z.unknown().optional();
 				}
@@ -111,6 +294,14 @@ export function FieldsForm({
 	});
 
 	const handleFormSubmit = (data: FormValues) => {
+		setConfirmedData(data);
+		setShowConfirmation(true);
+		window.scrollTo({ top: 0, behavior: "smooth" });
+	};
+
+	const onConfirm = () => {
+		if (!confirmedData) return;
+
 		const formData = new FormData();
 
 		const appendToFormData = (
@@ -122,27 +313,39 @@ export function FieldsForm({
 				const fieldKey = prefix ? `${prefix}_${key}` : key;
 
 				if (Array.isArray(value)) {
-					value.forEach((item: unknown, index: number) => {
-						if (typeof item === "object" && item !== null) {
-							const itemObj = item as Record<string, unknown>;
-							for (const childId in itemObj) {
-								const val = itemObj[childId];
-								if (val instanceof FileList) {
-									if (val.length > 0) {
+					// Check if array of primitives (strings/numbers) -> join them
+					if (
+						value.length > 0 &&
+						(typeof value[0] === "string" ||
+							typeof value[0] === "number")
+					) {
+						formData.append(fieldKey, value.join(", "));
+					} else {
+						value.forEach((item: unknown, index: number) => {
+							if (typeof item === "object" && item !== null) {
+								const itemObj = item as Record<string, unknown>;
+								for (const childId in itemObj) {
+									const val = itemObj[childId];
+									if (val instanceof FileList) {
+										if (val.length > 0) {
+											formData.append(
+												`${childId}_${index}`,
+												val[0],
+											);
+										}
+									} else if (
+										val !== undefined &&
+										val !== null
+									) {
 										formData.append(
 											`${childId}_${index}`,
-											val[0],
+											String(val),
 										);
 									}
-								} else if (val !== undefined && val !== null) {
-									formData.append(
-										`${childId}_${index}`,
-										String(val),
-									);
 								}
 							}
-						}
-					});
+						});
+					}
 				} else if (value instanceof FileList) {
 					if (value.length > 0) {
 						formData.append(fieldKey, value[0]);
@@ -153,7 +356,7 @@ export function FieldsForm({
 			}
 		};
 
-		appendToFormData(data);
+		appendToFormData(confirmedData);
 		onSubmit(formData);
 	};
 
@@ -185,6 +388,19 @@ export function FieldsForm({
 					</Button>
 				</div>
 			</div>
+		);
+	}
+
+	if (showConfirmation && confirmedData) {
+		return (
+			<ConfirmationStep
+				fields={fields}
+				data={confirmedData}
+				onConfirm={onConfirm}
+				onEdit={() => setShowConfirmation(false)}
+				isLoading={isLoading}
+				submitText={submitText}
+			/>
 		);
 	}
 
@@ -220,17 +436,10 @@ export function FieldsForm({
 					disabled={isLoading}
 					className={`w-full ${onBack ? "sm:w-auto" : ""} h-11 bg-blue-600 hover:bg-blue-700 text-white min-w-[200px]`}
 				>
-					{isLoading ? (
-						<div className="flex items-center gap-2">
-							<Spinner className="w-4 h-4" />
-							Submitting...
-						</div>
-					) : (
-						<div className="flex items-center gap-2">
-							{submitText}
-							<ArrowRightIcon className="w-4 h-4" />
-						</div>
-					)}
+					<div className="flex items-center gap-2">
+						{submitText}
+						<ArrowRightIcon className="w-4 h-4" />
+					</div>
 				</Button>
 			</div>
 		</form>
@@ -270,6 +479,10 @@ function InternalFieldRenderer({
 		return current as RHFFieldError | undefined;
 	};
 	const error = getError(fieldName, errors);
+	const currentValues = useWatch({
+		control,
+		name: fieldName as Path<FormValues>,
+	}) as string[] | undefined;
 
 	if (field.type === "heading") {
 		return (
@@ -279,6 +492,10 @@ function InternalFieldRenderer({
 				</h3>
 			</div>
 		);
+	}
+
+	if (field.type === "info_text") {
+		return <p className="text-base text-slate-700">{field.name}</p>;
 	}
 
 	if (field.type === "admin_file") {
@@ -362,6 +579,9 @@ function InternalFieldRenderer({
 					{field.type === "file" && (
 						<FileIcon className="w-4 h-4 text-slate-400" />
 					)}
+					{field.type === "multi_select" && (
+						<ListChecks className="w-4 h-4 text-slate-400" />
+					)}
 					{field.type === "text" && (
 						<TypeIcon className="w-4 h-4 text-slate-400" />
 					)}
@@ -417,6 +637,58 @@ function InternalFieldRenderer({
 							))}
 						</SelectContent>
 					</Select>
+				)}
+
+				{field.type === "multi_select" && (
+					<div className="flex flex-wrap gap-3 select-none">
+						{field.options?.map((opt) => {
+							const isChecked = (currentValues || []).includes(
+								opt.value,
+							);
+							return (
+								<label
+									key={opt.id}
+									htmlFor={`${fieldName}_${opt.id}`}
+									className={`
+										flex items-center gap-3 px-4 py-3 rounded-md border-2 transition-all cursor-pointer h-full min-w-[120px]
+										${
+											isChecked
+												? "bg-blue-50 border-blue-600 text-blue-700 shadow-sm ring-1 ring-blue-600/20"
+												: "bg-white border-slate-100 hover:border-slate-200 text-slate-600 hover:bg-slate-50/50"
+										}
+									`}
+								>
+									<Checkbox
+										id={`${fieldName}_${opt.id}`}
+										checked={isChecked}
+										onCheckedChange={(
+											checked: boolean | "indeterminate",
+										) => {
+											const values = currentValues || [];
+											let newValues: string[];
+											if (checked === true) {
+												newValues = [
+													...values,
+													opt.value,
+												];
+											} else {
+												newValues = values.filter(
+													(v) => v !== opt.value,
+												);
+											}
+											setValue(
+												fieldName as Path<FormValues>,
+												newValues,
+											);
+										}}
+									/>
+									<span className="text-sm font-semibold leading-none">
+										{opt.value}
+									</span>
+								</label>
+							);
+						})}
+					</div>
 				)}
 
 				{field.type === "relation" && !field.relatedValue && (

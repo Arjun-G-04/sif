@@ -60,7 +60,7 @@ function EquipmentFieldsPage() {
 					</div>
 
 					<Tabs defaultValue="initial" className="w-full space-y-6">
-						<TabsList className="bg-white border">
+						<TabsList className="w-full bg-white border">
 							<TabsTrigger
 								value="initial"
 								className="data-[state=active]:bg-slate-100"

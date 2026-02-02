@@ -35,19 +35,17 @@ services:
     depends_on:
       - db
 
-  # Uncomment the following block to run migrations using the 'migrator' stage. 
-  # Use --remove-orphans when re-running.
-
-  # migrator:
-  #   build:
-  #     context: .
-  #     target: migrator
-  #   environment:
-  #     DATABASE_URL: postgres://db_user:${DB_PASS}@db:5432/sif
-  #   depends_on:
-  #     db:
-  #       condition: service_healthy
-  #   restart: "no"
+  migrator:
+    profiles: ["tools"]
+    build:
+      context: .
+      target: migrator
+    environment:
+      DATABASE_URL: postgres://db_user:${DB_PASS}@db:5432/sif
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
 
 volumes:
   db_data:

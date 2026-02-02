@@ -13,6 +13,7 @@ import { requireAdmin } from "../../lib/auth";
 import { safeParseAndThrow } from "../../lib/utils";
 import {
 	CreateFieldInput,
+	DeleteFieldInput,
 	ToggleFieldActiveInput,
 	UpdateFieldInput,
 } from "./schemas";
@@ -57,7 +58,8 @@ export const createField = createServerFn({ method: "POST" })
 				.returning({ id: fields.id });
 
 			if (
-				parsedData.type === "single_select" &&
+				(parsedData.type === "single_select" ||
+					parsedData.type === "multi_select") &&
 				parsedData.options &&
 				parsedData.options.length > 0
 			) {
@@ -139,7 +141,10 @@ export const updateField = createServerFn({ method: "POST" })
 				.where(eq(fieldAdminFiles.fieldId, parsedData.id));
 
 			// Re-insert based on type
-			if (parsedData.type === "single_select") {
+			if (
+				parsedData.type === "single_select" ||
+				parsedData.type === "multi_select"
+			) {
 				if (parsedData.options && parsedData.options.length > 0) {
 					await tx.insert(fieldOptions).values(
 						parsedData.options.map((opt) => ({
@@ -182,6 +187,31 @@ export const toggleFieldActive = createServerFn({ method: "POST" })
 			.update(fields)
 			.set({ active: parsedData.active })
 			.where(eq(fields.id, parsedData.id));
+	});
+
+export const deleteField = createServerFn({ method: "POST" })
+	.inputValidator(DeleteFieldInput)
+	.handler(async ({ data }) => {
+		await requireAdmin();
+		const parsedData = safeParseAndThrow(data, DeleteFieldInput);
+
+		await db.transaction(async (tx) => {
+			// Helper to recursively delete child fields
+			const deleteRecursively = async (fieldId: number) => {
+				const children = await tx
+					.select({ id: fields.id })
+					.from(fields)
+					.where(eq(fields.parentId, fieldId));
+
+				for (const child of children) {
+					await deleteRecursively(child.id);
+				}
+
+				await tx.delete(fields).where(eq(fields.id, fieldId));
+			};
+
+			await deleteRecursively(parsedData.id);
+		});
 	});
 
 export const uploadAdminFile = createServerFn({ method: "POST" })

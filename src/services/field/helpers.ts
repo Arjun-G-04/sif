@@ -1,8 +1,13 @@
 import { createServerOnlyFn } from "@tanstack/react-start";
-import { and, eq, aliasedTable } from "drizzle-orm";
+import { aliasedTable, and, eq, inArray } from "drizzle-orm";
 import { saveUploadedFile } from "@/lib/files";
 import { db } from "../../db";
-import { type entityType, fieldResponses, fields } from "../../db/schema";
+import {
+	type entityType,
+	fieldGroups,
+	fieldResponses,
+	fields,
+} from "../../db/schema";
 import type { FieldEntry } from "./types";
 
 export const parseFieldResponses = createServerOnlyFn(
@@ -15,7 +20,12 @@ export const parseFieldResponses = createServerOnlyFn(
 	): Promise<FieldEntry[]> => {
 		// Fetch fields from database
 		const entityFields = await db
-			.select({ id: fields.id, name: fields.name, type: fields.type })
+			.select({
+				id: fields.id,
+				name: fields.name,
+				type: fields.type,
+				parentId: fields.parentId,
+			})
 			.from(fields)
 			.where(
 				and(
@@ -29,6 +39,27 @@ export const parseFieldResponses = createServerOnlyFn(
 		const fieldIdToField = new Map(
 			entityFields.map((f) => [String(f.id), f]),
 		);
+
+		// Fetch group constraints
+		const parentIds = [
+			...new Set(
+				entityFields
+					.map((f) => f.parentId)
+					.filter((id): id is number => id !== null),
+			),
+		];
+		const groupConstraints = new Map<number, number>();
+
+		if (parentIds.length > 0) {
+			const groups = await db
+				.select({ fieldId: fieldGroups.fieldId, max: fieldGroups.max })
+				.from(fieldGroups)
+				.where(inArray(fieldGroups.fieldId, parentIds));
+
+			for (const g of groups) {
+				groupConstraints.set(g.fieldId, g.max);
+			}
+		}
 
 		const fieldEntries: FieldEntry[] = [];
 
@@ -46,6 +77,15 @@ export const parseFieldResponses = createServerOnlyFn(
 			if (!field) continue;
 
 			const iteration = iterationRaw ? parseInt(iterationRaw, 10) : 0;
+
+			if (field.parentId) {
+				const max = groupConstraints.get(field.parentId);
+				if (max !== undefined && iteration >= max) {
+					throw new Error(
+						`Field ${field.name} exceeds maximum allowed iterations (${max}) for its group.`,
+					);
+				}
+			}
 
 			let fieldValue: string | null = null;
 

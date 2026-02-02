@@ -74,11 +74,12 @@ function EquipmentBookingPage() {
 							<CheckIcon className="w-8 h-8" />
 						</div>
 						<h2 className="text-2xl font-bold text-slate-900">
-							Booking Submitted!
+							Booking Submitted
 						</h2>
 						<p className="text-slate-500">
 							Your request for {equipmentName.data} has been
-							successfully submitted.
+							successfully submitted. You'll receive an email once
+							the operator confirms your request.
 						</p>
 						<Button
 							className="mt-4"

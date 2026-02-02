@@ -52,10 +52,13 @@ export const fetchFieldsFromDb = createServerOnlyFn(
 		for (const row of rows) {
 			if (!flatFieldsMap.has(row.field.id)) {
 				let field: Field;
-				if (row.field.type === "single_select") {
+				if (
+					row.field.type === "single_select" ||
+					row.field.type === "multi_select"
+				) {
 					field = {
 						...row.field,
-						type: "single_select",
+						type: row.field.type,
 						options: [],
 					} as Field;
 				} else if (row.field.type === "relation" && row.relation) {
@@ -87,7 +90,8 @@ export const fetchFieldsFromDb = createServerOnlyFn(
 			if (
 				field &&
 				row.option &&
-				field.type === "single_select" &&
+				(field.type === "single_select" ||
+					field.type === "multi_select") &&
 				!field.options.some((o) => o.id === row.option?.id)
 			) {
 				field.options.push(row.option);

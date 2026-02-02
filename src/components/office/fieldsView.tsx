@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Pencil, RotateCcw, Trash2, Paperclip } from "lucide-react";
+import { Pencil, Eye, EyeOff, Trash2, Paperclip } from "lucide-react";
 import { toast } from "sonner";
 import {
 	AlertDialog,
@@ -23,7 +23,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import type { Field } from "@/services/field";
-import { toggleFieldActive } from "@/services/field";
+import { toggleFieldActive, deleteField } from "@/services/field";
 import { FieldDialog } from "./fieldDialog";
 import { Fragment } from "react";
 import type { entityType as entityTypeDef, fieldStage } from "@/db/schema";
@@ -56,11 +56,22 @@ export function FieldsView({
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({ queryKey: ["fields"] });
 			toast.success(
-				`Field ${variables.active ? "restored" : "removed"} successfully`,
+				`Field ${variables.active ? "activated" : "deactivated"} successfully`,
 			);
 		},
 		onError: (error) => {
 			toast.error(error.message || "Failed to update field status");
+		},
+	});
+
+	const deleteMutation = useMutation({
+		mutationFn: ({ id }: { id: number }) => deleteField({ data: { id } }),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["fields"] });
+			toast.success("Field deleted permanently");
+		},
+		onError: (error) => {
+			toast.error(error.message || "Failed to delete field");
 		},
 	});
 
@@ -92,7 +103,7 @@ export function FieldsView({
 						{field.order}
 					</div>
 				</TableCell>
-				<TableCell className="font-semibold text-gray-900">
+				<TableCell className="font-semibold text-gray-900 max-w-[250px] wrap-break-word whitespace-normal">
 					{field.name}
 				</TableCell>
 				<TableCell>
@@ -101,7 +112,8 @@ export function FieldsView({
 					</Badge>
 				</TableCell>
 				<TableCell>
-					{field.type === "single_select" &&
+					{(field.type === "single_select" ||
+						field.type === "multi_select") &&
 					field.options &&
 					field.options.length > 0 ? (
 						<div className="flex flex-wrap gap-1">
@@ -131,7 +143,8 @@ export function FieldsView({
 						>
 							Max Iterations: {field.groupConfig.max}
 						</Badge>
-					) : field.type === "heading" ? (
+					) : field.type === "heading" ||
+						field.type === "info_text" ? (
 						<span className="text-xs text-gray-400 italic">
 							N/A
 						</span>
@@ -181,15 +194,15 @@ export function FieldsView({
 								<Button
 									variant="ghost"
 									size="sm"
-									className="h-8 w-8 p-0 hover:text-red-600 hover:bg-red-50"
+									className="h-8 w-8 p-0 hover:text-amber-600 hover:bg-amber-50"
 								>
-									<Trash2 className="h-4 w-4" />
+									<EyeOff className="h-4 w-4" />
 								</Button>
 							</AlertDialogTrigger>
 							<AlertDialogContent>
 								<AlertDialogHeader>
 									<AlertDialogTitle>
-										Remove Field?
+										Deactivate Field?
 									</AlertDialogTitle>
 									<AlertDialogDescription>
 										Existing collected data won't be
@@ -202,7 +215,7 @@ export function FieldsView({
 										Cancel
 									</AlertDialogCancel>
 									<AlertDialogAction
-										className="bg-red-600 hover:bg-red-700"
+										className="bg-amber-600 hover:bg-amber-700"
 										onClick={() =>
 											toggleMutation.mutate({
 												id: field.id,
@@ -210,7 +223,7 @@ export function FieldsView({
 											})
 										}
 									>
-										Remove
+										Deactivate
 									</AlertDialogAction>
 								</AlertDialogFooter>
 							</AlertDialogContent>
@@ -227,10 +240,50 @@ export function FieldsView({
 								})
 							}
 						>
-							<RotateCcw className="h-4 w-4" />
-							<span className="sr-only">Restore</span>
+							<Eye className="h-4 w-4" />
+							<span className="sr-only">Activate</span>
 						</Button>
 					)}
+				</TableCell>
+				<TableCell className="text-center">
+					<AlertDialog>
+						<AlertDialogTrigger asChild>
+							<Button
+								variant="ghost"
+								size="sm"
+								className="h-8 w-8 p-0 hover:text-red-600 hover:bg-red-50"
+							>
+								<Trash2 className="h-4 w-4" />
+							</Button>
+						</AlertDialogTrigger>
+						<AlertDialogContent>
+							<AlertDialogHeader>
+								<AlertDialogTitle>
+									Permanently Delete Field?
+								</AlertDialogTitle>
+								<AlertDialogDescription className="text-red-600 font-medium">
+									Warning: This will permanently delete the
+									field, all its child fields, all its
+									options, and ALL responses collected so far
+									across all tables. This action CANNOT be
+									undone.
+								</AlertDialogDescription>
+							</AlertDialogHeader>
+							<AlertDialogFooter>
+								<AlertDialogCancel>Cancel</AlertDialogCancel>
+								<AlertDialogAction
+									className="bg-red-600 hover:bg-red-700"
+									onClick={() =>
+										deleteMutation.mutate({
+											id: field.id,
+										})
+									}
+								>
+									Delete Permanently
+								</AlertDialogAction>
+							</AlertDialogFooter>
+						</AlertDialogContent>
+					</AlertDialog>
 				</TableCell>
 			</TableRow>
 		);
@@ -254,7 +307,9 @@ export function FieldsView({
 				<TableHeader>
 					<TableRow className="bg-gray-50/50">
 						<TableHead className="w-[80px]">Order</TableHead>
-						<TableHead>Field Name</TableHead>
+						<TableHead className="max-w-[250px]">
+							Field Name
+						</TableHead>
 						<TableHead>Type</TableHead>
 						<TableHead>Options / Config</TableHead>
 						<TableHead>Active</TableHead>
@@ -262,7 +317,10 @@ export function FieldsView({
 							Edit
 						</TableHead>
 						<TableHead className="w-[50px] text-center">
-							Remove
+							Inactive
+						</TableHead>
+						<TableHead className="w-[50px] text-center">
+							Delete
 						</TableHead>
 					</TableRow>
 				</TableHeader>

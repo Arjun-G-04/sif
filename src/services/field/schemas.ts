@@ -71,3 +71,7 @@ export const GetFieldsInput = z.object({
 	entityId: z.number().int().optional(),
 	stage: z.enum(fieldStage.enumValues).optional(),
 });
+
+export const DeleteFieldInput = z.object({
+	id: z.number().int(),
+});

@@ -64,7 +64,8 @@ export function FieldDialog({
 	const [order, setOrder] = useState(field?.order || 0);
 	const [stage, setStage] = useState(field?.stage || initialStage);
 	const [options, setOptions] = useState<{ id: string; value: string }[]>(
-		field?.type === "single_select" && field.options
+		(field?.type === "single_select" || field?.type === "multi_select") &&
+			field.options
 			? field.options.map((o) => ({
 					id: String(o.id),
 					value: o.value,
@@ -122,7 +123,11 @@ export function FieldDialog({
 				setOrder(field.order);
 				setStage(field.stage || "initial");
 				setParentId(field.parentId ? String(field.parentId) : "none");
-				if (field.type === "single_select" && field.options) {
+				if (
+					(field.type === "single_select" ||
+						field.type === "multi_select") &&
+					field.options
+				) {
 					setOptions(
 						field.options.map((o) => ({
 							id: String(o.id),
@@ -276,7 +281,7 @@ export function FieldDialog({
 			order,
 			stage,
 			options:
-				type === "single_select"
+				type === "single_select" || type === "multi_select"
 					? options.map((o) => o.value)
 					: undefined,
 			relation:
@@ -350,7 +355,7 @@ export function FieldDialog({
 				<div className="space-y-4 py-4">
 					<div className="space-y-2">
 						<Label htmlFor={nameId}>
-							Field Name / Heading Text
+							Field Name / Heading / Info Text
 						</Label>
 						<Input
 							id={nameId}
@@ -378,7 +383,7 @@ export function FieldDialog({
 									.map((t) => (
 										<SelectItem key={t} value={t}>
 											<span className="capitalize">
-												{t.replace("_", " ")}
+												{t.replace(/_/g, " ")}
 											</span>
 										</SelectItem>
 									))}
@@ -463,7 +468,7 @@ export function FieldDialog({
 							) : null}
 						</div>
 					)}
-					{type === "single_select" && (
+					{(type === "single_select" || type === "multi_select") && (
 						<div className="space-y-2">
 							<Label>Options</Label>
 							{options.map((opt, index) => (
