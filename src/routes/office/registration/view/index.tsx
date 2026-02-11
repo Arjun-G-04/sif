@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Eye } from "lucide-react";
 import { Header } from "@/components/office/header";
 import { Button } from "@/components/ui/button";
-import { Column, DataTable } from "@/components/general/DataTable";
+import { type Column, DataTable } from "@/components/general/DataTable";
 
 import { requireAdmin } from "@/lib/auth";
 import { getRegistrations } from "@/services/registration";
@@ -104,7 +104,6 @@ function RegistrationViewPage() {
 								},
 							})
 						}
-						emptyState="No registrations found."
 					/>
 				</div>
 			</main>

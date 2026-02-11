@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Eye } from "lucide-react";
 import { Header } from "@/components/office/header";
 import { Button } from "@/components/ui/button";
-import { DataTable, Column } from "@/components/general/DataTable";
+import { DataTable, type Column } from "@/components/general/DataTable";
 
 import { requireAdmin } from "@/lib/auth";
 import { getBookings } from "@/services/booking";
@@ -134,7 +134,6 @@ function BookingViewPage() {
 								},
 							})
 						}
-						emptyState="No bookings found."
 					/>
 				</div>
 			</main>

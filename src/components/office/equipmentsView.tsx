@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DataTable, Column } from "@/components/general/DataTable";
+import { DataTable, type Column } from "@/components/general/DataTable";
 
 import { type Equipment, toggleEquipmentActive } from "@/services/equipment";
 import { EquipmentDialog } from "./equipmentDialog";
@@ -40,16 +40,6 @@ export function EquipmentsView({ equipments }: EquipmentsViewProps) {
 			toast.error(error.message || "Failed to update equipment status");
 		},
 	});
-
-	if (equipments.length === 0) {
-		return (
-			<div className="py-12 text-center border-2 border-dashed rounded-xl">
-				<p className="text-gray-400 italic">
-					No equipments defined yet.
-				</p>
-			</div>
-		);
-	}
 
 	const columns: Column<Equipment>[] = [
 		{
@@ -194,7 +184,6 @@ export function EquipmentsView({ equipments }: EquipmentsViewProps) {
 			data={equipments}
 			columns={columns}
 			keyExtractor={(item) => item.id}
-			emptyState="No equipments defined yet."
 		/>
 	);
 }
