@@ -24,6 +24,7 @@ This document provides essential information for AI agents operating in the SIF 
 ### Development Workflow
 - **Frequent Commits:** Agents are encouraged to make small, frequent commits while building features to track progress and allow for easy reverts.
 - **Husky Hooks:** Pre-commit hooks may be temporarily disabled/commented out during intensive development to speed up the commit process. **IMPORTANT: They MUST be re-enabled before the final PR submission.**
+- **Tidy Git:** After a PR is merged, agents should clean up the local environment when requested by the user: `git checkout main && git pull origin main && git fetch --prune`. Local feature branches that are already merged can be deleted using `git branch --merged main | grep -v '^\*' | xargs -n 1 git branch -d`.
 
 ### Database (Drizzle)
 - **Generate Migrations:** `pnpm db:generate`
