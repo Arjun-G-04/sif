@@ -1,4 +1,4 @@
 # .husky/pre-commit
 
-# pnpm lint-staged --concurrent false
-# pnpm build
+pnpm lint-staged --concurrent false
+pnpm build

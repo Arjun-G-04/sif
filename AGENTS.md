@@ -23,7 +23,7 @@ This document provides essential information for AI agents operating in the SIF 
 
 ### Development Workflow
 - **Frequent Commits:** Agents are encouraged to make small, frequent commits while building features to track progress and allow for easy reverts.
-- **Husky Hooks:** Pre-commit hooks may be temporarily disabled/commented out during intensive development to speed up the commit process.
+- **Husky Hooks:** Pre-commit hooks may be temporarily disabled/commented out during intensive development to speed up the commit process. **IMPORTANT: They MUST be re-enabled before the final PR submission.**
 
 ### Database (Drizzle)
 - **Generate Migrations:** `pnpm db:generate`
