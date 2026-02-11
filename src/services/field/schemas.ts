@@ -34,6 +34,7 @@ export const CreateFieldInput = z.object({
 
 export const UpdateFieldInput = z.object({
 	id: z.number().int(),
+	parentId: z.number().int().optional().nullable(),
 	name: z.string().min(1, "Field name is required"),
 	type: z.enum(fieldType.enumValues, "Invalid field type"),
 	order: z.number().int().default(0),

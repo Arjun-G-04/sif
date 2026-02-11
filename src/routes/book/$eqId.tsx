@@ -83,9 +83,9 @@ function EquipmentBookingPage() {
 						</p>
 						<Button
 							className="mt-4"
-							onClick={() => router.navigate({ to: "/book" })}
+							onClick={() => router.navigate({ to: "/bookings" })}
 						>
-							Back to Equipments
+							Go to My Bookings
 						</Button>
 					</div>
 				</main>

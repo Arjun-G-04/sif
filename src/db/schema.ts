@@ -12,8 +12,10 @@ export const userRole = pgEnum("user_role", ["public", "admin"]);
 export const bookingStatus = pgEnum("booking_status", [
 	"pending",
 	"payment",
+	"payment_verification",
 	"processing",
 	"rejected",
+	"completed",
 ]);
 
 export const users = pgTable("users", {

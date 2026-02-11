@@ -304,6 +304,7 @@ export function FieldDialog({
 			updateMutation.mutate({
 				data: {
 					id: field.id,
+					parentId: parentId !== "none" ? Number(parentId) : null,
 					...fieldData,
 				},
 			});
@@ -391,7 +392,7 @@ export function FieldDialog({
 						</Select>
 					</div>
 
-					{!isEdit && groupFields && groupFields.length > 0 && (
+					{groupFields && groupFields.length > 0 && (
 						<div className="space-y-2">
 							<Label>Parent Group (Optional)</Label>
 							<Select

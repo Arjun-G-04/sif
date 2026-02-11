@@ -640,7 +640,7 @@ function InternalFieldRenderer({
 				)}
 
 				{field.type === "multi_select" && (
-					<div className="flex flex-wrap gap-3 select-none">
+					<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 select-none">
 						{field.options?.map((opt) => {
 							const isChecked = (currentValues || []).includes(
 								opt.value,
@@ -650,7 +650,7 @@ function InternalFieldRenderer({
 									key={opt.id}
 									htmlFor={`${fieldName}_${opt.id}`}
 									className={`
-										flex items-center gap-3 px-4 py-3 rounded-md border-2 transition-all cursor-pointer h-full min-w-[120px]
+										flex items-start gap-3 px-4 py-3 rounded-md border-2 transition-all cursor-pointer h-full
 										${
 											isChecked
 												? "bg-blue-50 border-blue-600 text-blue-700 shadow-sm ring-1 ring-blue-600/20"
@@ -661,6 +661,7 @@ function InternalFieldRenderer({
 									<Checkbox
 										id={`${fieldName}_${opt.id}`}
 										checked={isChecked}
+										className="mt-0.5 shrink-0"
 										onCheckedChange={(
 											checked: boolean | "indeterminate",
 										) => {
@@ -682,7 +683,7 @@ function InternalFieldRenderer({
 											);
 										}}
 									/>
-									<span className="text-sm font-semibold leading-none">
+									<span className="text-sm font-semibold leading-snug text-wrap">
 										{opt.value}
 									</span>
 								</label>

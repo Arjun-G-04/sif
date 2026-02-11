@@ -202,6 +202,28 @@ export const rejectBooking = createServerFn({ method: "POST" })
 		return { success: true };
 	});
 
+export const verifyBookingPayment = createServerFn({ method: "POST" })
+	.inputValidator(z.object({ bookingId: z.number() }))
+	.handler(async ({ data }) => {
+		await requireAdmin();
+		await db
+			.update(bookings)
+			.set({ status: "processing" })
+			.where(eq(bookings.id, data.bookingId));
+		return { success: true };
+	});
+
+export const completeBooking = createServerFn({ method: "POST" })
+	.inputValidator(z.object({ bookingId: z.number() }))
+	.handler(async ({ data }) => {
+		await requireAdmin();
+		await db
+			.update(bookings)
+			.set({ status: "completed" })
+			.where(eq(bookings.id, data.bookingId));
+		return { success: true };
+	});
+
 export const getUserBookings = createServerFn({ method: "GET" }).handler(
 	async () => {
 		const user = await requireUser();
@@ -341,10 +363,10 @@ export const submitBookingPaymentInfo = createServerFn({ method: "POST" })
 				);
 			}
 
-			// Update booking status to processing
+			// Update booking status to payment_verification
 			await db
 				.update(bookings)
-				.set({ status: "processing" })
+				.set({ status: "payment_verification" })
 				.where(eq(bookings.id, booking.id));
 		}
 
