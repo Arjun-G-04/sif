@@ -23,7 +23,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { requireAdmin } from "@/lib/auth";
-import { acceptBooking, getBooking, rejectBooking } from "@/services/booking";
+import {
+	acceptBooking,
+	completeBooking,
+	getBooking,
+	rejectBooking,
+	verifyBookingPayment,
+} from "@/services/booking";
 
 export const bookingQueryOptions = (bookingId: number) =>
 	queryOptions({
@@ -56,6 +62,9 @@ function BookingDetailPage() {
 
 	const [isAcceptDialogOpen, setIsAcceptDialogOpen] = useState(false);
 	const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+	const [isVerifyPaymentDialogOpen, setIsVerifyPaymentDialogOpen] =
+		useState(false);
+	const [isCompleteDialogOpen, setIsCompleteDialogOpen] = useState(false);
 	const [price, setPrice] = useState(data.price?.toString() || "");
 	const [remarks, setRemarks] = useState(data.remarks || "");
 	const [rejectionReason, setRejectionReason] = useState("");
@@ -87,6 +96,32 @@ function BookingDetailPage() {
 		},
 		onError: (error) => {
 			toast.error(error.message || "Failed to reject booking");
+		},
+	});
+
+	const verifyPaymentMutation = useMutation({
+		mutationFn: verifyBookingPayment,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["booking", bookingId] });
+			queryClient.invalidateQueries({ queryKey: ["bookings"] });
+			toast.success("Payment verified successfully");
+			setIsVerifyPaymentDialogOpen(false);
+		},
+		onError: (error) => {
+			toast.error(error.message || "Failed to verify payment");
+		},
+	});
+
+	const completeMutation = useMutation({
+		mutationFn: completeBooking,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["booking", bookingId] });
+			queryClient.invalidateQueries({ queryKey: ["bookings"] });
+			toast.success("Booking completed successfully");
+			setIsCompleteDialogOpen(false);
+		},
+		onError: (error) => {
+			toast.error(error.message || "Failed to complete booking");
 		},
 	});
 
@@ -167,6 +202,44 @@ function BookingDetailPage() {
 									</Button>
 								</>
 							)}
+							{data.status === "payment_verification" && (
+								<>
+									<Button
+										variant="destructive"
+										className="bg-red-600 hover:bg-red-700"
+										onClick={() =>
+											setIsRejectDialogOpen(true)
+										}
+									>
+										<X className="w-4 h-4" />
+										Reject Payment
+									</Button>
+									<Button
+										className="bg-green-600 hover:bg-green-700"
+										onClick={() =>
+											setIsVerifyPaymentDialogOpen(true)
+										}
+										disabled={
+											verifyPaymentMutation.isPending
+										}
+									>
+										<Check className="w-4 h-4" />
+										Verify Payment
+									</Button>
+								</>
+							)}
+							{data.status === "processing" && (
+								<Button
+									className="bg-blue-600 hover:bg-blue-700"
+									onClick={() =>
+										setIsCompleteDialogOpen(true)
+									}
+									disabled={completeMutation.isPending}
+								>
+									<Check className="w-4 h-4" />
+									Mark as Completed
+								</Button>
+							)}
 						</div>
 					</div>
 
@@ -212,6 +285,30 @@ function BookingDetailPage() {
 								/>
 								{(data.status === "payment" ||
 									data.status === "processing") && (
+									<>
+										<DetailItem
+											label="Price"
+											value={`₹${data.price}`}
+										/>
+										<DetailItem
+											label="Remarks"
+											value={data.remarks || "-"}
+										/>
+									</>
+								)}
+								{data.status === "payment_verification" && (
+									<>
+										<DetailItem
+											label="Price"
+											value={`₹${data.price}`}
+										/>
+										<DetailItem
+											label="Remarks"
+											value={data.remarks || "-"}
+										/>
+									</>
+								)}
+								{data.status === "completed" && (
 									<>
 										<DetailItem
 											label="Price"
@@ -328,6 +425,80 @@ function BookingDetailPage() {
 							{rejectMutation.isPending
 								? "Rejecting..."
 								: "Confirm Reject"}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+			{/* Verify Payment Dialog */}
+			<Dialog
+				open={isVerifyPaymentDialogOpen}
+				onOpenChange={setIsVerifyPaymentDialogOpen}
+			>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Verify Payment</DialogTitle>
+						<DialogDescription>
+							Are you sure you want to verify the payment for this
+							booking? This will move the booking to the
+							'Processing' stage.
+						</DialogDescription>
+					</DialogHeader>
+					<DialogFooter>
+						<Button
+							variant="outline"
+							onClick={() => setIsVerifyPaymentDialogOpen(false)}
+						>
+							Cancel
+						</Button>
+						<Button
+							className="bg-green-600 hover:bg-green-700"
+							onClick={() =>
+								verifyPaymentMutation.mutate({
+									data: { bookingId },
+								})
+							}
+							disabled={verifyPaymentMutation.isPending}
+						>
+							{verifyPaymentMutation.isPending
+								? "Verifying..."
+								: "Confirm Verify"}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			{/* Complete Booking Dialog */}
+			<Dialog
+				open={isCompleteDialogOpen}
+				onOpenChange={setIsCompleteDialogOpen}
+			>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Complete Booking</DialogTitle>
+						<DialogDescription>
+							Are you sure you want to mark this booking as
+							completed?
+						</DialogDescription>
+					</DialogHeader>
+					<DialogFooter>
+						<Button
+							variant="outline"
+							onClick={() => setIsCompleteDialogOpen(false)}
+						>
+							Cancel
+						</Button>
+						<Button
+							className="bg-blue-600 hover:bg-blue-700"
+							onClick={() =>
+								completeMutation.mutate({
+									data: { bookingId },
+								})
+							}
+							disabled={completeMutation.isPending}
+						>
+							{completeMutation.isPending
+								? "Completing..."
+								: "Confirm Complete"}
 						</Button>
 					</DialogFooter>
 				</DialogContent>

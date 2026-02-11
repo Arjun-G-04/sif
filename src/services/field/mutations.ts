@@ -119,6 +119,10 @@ export const updateField = createServerFn({ method: "POST" })
 			await tx
 				.update(fields)
 				.set({
+					parentId:
+						parsedData.parentId === null
+							? null
+							: (parsedData.parentId ?? undefined),
 					name: parsedData.name,
 					type: parsedData.type,
 					order: parsedData.order,

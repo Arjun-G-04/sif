@@ -60,7 +60,8 @@ function UserBookingDetailPage() {
 					stage: "payment",
 				},
 			}),
-		enabled: data.status === "payment",
+		enabled:
+			data.status === "payment" || data.status === "payment_verification",
 	});
 
 	const paymentMutation = useMutation({
@@ -137,7 +138,10 @@ function UserBookingDetailPage() {
 
 					<Separator className="bg-slate-200" />
 
-					{data.status === "payment" && (
+					{(data.status === "payment" ||
+						data.status === "payment_verification" ||
+						data.status === "processing" ||
+						data.status === "completed") && (
 						<div className="p-6 md:p-8 bg-blue-50/50 border border-blue-100 rounded-xl grid grid-cols-1 md:grid-cols-2 gap-8">
 							<div className="space-y-2">
 								<h3 className="text-sm font-semibold text-blue-900 uppercase tracking-wider">
@@ -197,9 +201,16 @@ function UserBookingDetailPage() {
 											? "Payment Required"
 											: data.status === "pending"
 												? "Under Review"
-												: data.status === "processing"
-													? "Processing"
-													: data.status.toUpperCase()
+												: data.status ===
+														"payment_verification"
+													? "Payment Verification"
+													: data.status ===
+															"processing"
+														? "Processing"
+														: data.status ===
+																"completed"
+															? "Completed"
+															: data.status.toUpperCase()
 									}
 									status={data.status}
 								/>
@@ -465,6 +476,17 @@ function DetailItem({
 					{status === "processing" && (
 						<span className="inline-flex items-center rounded-md bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">
 							Processing
+						</span>
+					)}
+
+					{status === "payment_verification" && (
+						<span className="inline-flex items-center rounded-md bg-purple-50 px-2.5 py-0.5 text-xs font-medium text-purple-700 ring-1 ring-inset ring-purple-600/20">
+							Verifying Payment
+						</span>
+					)}
+					{status === "completed" && (
+						<span className="inline-flex items-center rounded-md bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+							Completed
 						</span>
 					)}
 				</div>
