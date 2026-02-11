@@ -107,10 +107,15 @@ export function DataTable<T>({
 
 	return (
 		<div className="space-y-4">
-			<div className={cn("rounded-md border bg-white", className)}>
+			<div
+				className={cn(
+					"rounded-md border bg-white overflow-hidden",
+					className,
+				)}
+			>
 				<Table>
 					<TableHeader>
-						<TableRow>
+						<TableRow className="bg-gray-50/50">
 							{columns.map((column, index) => {
 								const isSortable =
 									column.sortable !== false &&
@@ -162,7 +167,6 @@ export function DataTable<T>({
 							<TableRow
 								key={keyExtractor(item)}
 								className={cn(
-									"bg-white",
 									onRowClick &&
 										"cursor-pointer hover:bg-slate-50",
 									typeof rowClassName === "function"
