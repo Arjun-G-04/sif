@@ -20,7 +20,6 @@ import {
 } from "../ui/card";
 import { Field, FieldLabel } from "../ui/field";
 import { Input } from "../ui/input";
-import { Separator } from "../ui/separator";
 import { Spinner } from "../ui/spinner";
 
 export function Login() {
@@ -144,18 +143,8 @@ export function Login() {
 					</Button>
 				</form>
 
-				<div className="mt-8 space-y-4">
-					<div className="relative">
-						<div className="absolute inset-0 flex items-center">
-							<Separator className="bg-slate-200" />
-						</div>
-						<div className="relative flex justify-center text-xs uppercase">
-							<span className="bg-white/90 backdrop-blur-xl px-2 text-slate-500 font-semibold tracking-wider">
-								New here?
-							</span>
-						</div>
-					</div>
-
+				<div className="mt-8 space-y-3">
+					<Action to="/forgot" label="Forgot your password?" />
 					<Action to="/registration" label="New user registration" />
 				</div>
 			</CardContent>

@@ -111,15 +111,13 @@ export const submitRegistration = createServerFn({ method: "POST" })
 			);
 		}
 
-		if (process.env.NODE_ENV === "production") {
-			const config = await getConfigHelper();
-			if (config?.officeEmail) {
-				await sendEmail({
-					to: config.officeEmail,
-					subject: "New Registration",
-					message: `A new registration (ID: ${registration.id}) has been submitted.`,
-				});
-			}
+		const config = await getConfigHelper();
+		if (config?.officeEmail) {
+			await sendEmail({
+				to: config.officeEmail,
+				subject: "New Registration",
+				message: `A new registration (ID: ${registration.id}) has been submitted.`,
+			});
 		}
 
 		return { success: true, registrationId: registration.id };
@@ -210,13 +208,11 @@ export const acceptRegistration = createServerFn({ method: "POST" })
 				.where(eq(registrations.id, regId));
 		});
 
-		if (process.env.NODE_ENV === "production") {
-			await sendEmail({
-				to: reg.email,
-				subject: "Registration Accepted",
-				message: `Your registration (ID: ${regId}) has been accepted. Please login with your registered email and password.`,
-			});
-		}
+		await sendEmail({
+			to: reg.email,
+			subject: "Registration Accepted",
+			message: `Your registration (ID: ${regId}) has been accepted. Please login with your registered email and password.`,
+		});
 	});
 
 const RejectRegistrationInput = z.object({
@@ -248,15 +244,9 @@ export const rejectRegistration = createServerFn({ method: "POST" })
 			.set({ accepted: false, rejectionReason: reason })
 			.where(eq(registrations.id, regId));
 
-		if (process.env.NODE_ENV === "production") {
-			await sendEmail({
-				to: reg.email,
-				subject: "Registration Rejected",
-				message: `Your registration (ID: ${regId}) has been rejected. Reason: ${reason}`,
-			});
-		} else {
-			console.log(
-				`Registration (ID: ${regId}) rejected. Reason: ${reason}`,
-			);
-		}
+		await sendEmail({
+			to: reg.email,
+			subject: "Registration Rejected",
+			message: `Your registration (ID: ${regId}) has been rejected. Reason: ${reason}`,
+		});
 	});

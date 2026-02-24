@@ -27,6 +27,16 @@ export const sendEmail = createServerOnlyFn(
 			text: parsed.message,
 		};
 
+		if (process.env.NODE_ENV !== "production") {
+			console.log("--- DEVELOPMENT EMAIL CONTENT ---");
+			console.log(`To: ${mailOptions.to}`);
+			console.log(`Subject: ${mailOptions.subject}`);
+			console.log("Message:");
+			console.log(mailOptions.text);
+			console.log("----------------------------------");
+			return;
+		}
+
 		try {
 			await transporter.sendMail(mailOptions);
 		} catch (error) {

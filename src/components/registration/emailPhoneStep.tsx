@@ -1,11 +1,6 @@
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { useMutation } from "@tanstack/react-query";
-import {
-	ArrowRightIcon,
-	CheckCircleIcon,
-	MailIcon,
-	PhoneIcon,
-} from "lucide-react";
+import { ArrowRightIcon, CheckCircle, Mail, PhoneIcon } from "lucide-react";
 import { useId, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -165,10 +160,10 @@ export function EmailPhoneStep({ onComplete }: EmailPhoneStepProps) {
 			<Field>
 				<FieldLabel htmlFor="email">
 					<div className="flex items-center gap-2">
-						<MailIcon className="w-4 h-4 text-slate-400" />
+						<Mail className="w-4 h-4 text-slate-400" />
 						Email Address
 						{emailVerified && (
-							<CheckCircleIcon className="w-4 h-4 text-green-500" />
+							<CheckCircle className="w-4 h-4 text-green-500" />
 						)}
 					</div>
 				</FieldLabel>
@@ -261,7 +256,7 @@ export function EmailPhoneStep({ onComplete }: EmailPhoneStepProps) {
 						<PhoneIcon className="w-4 h-4 text-slate-400" />
 						Phone Number
 						{phoneVerified && (
-							<CheckCircleIcon className="w-4 h-4 text-green-500" />
+							<CheckCircle className="w-4 h-4 text-green-500" />
 						)}
 					</div>
 				</FieldLabel>

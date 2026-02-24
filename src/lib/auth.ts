@@ -1,12 +1,14 @@
 import { redirect } from "@tanstack/react-router";
 import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
 import { getRequest, setResponseHeader } from "@tanstack/react-start/server";
-import { compare } from "bcrypt";
+import { compare, hash } from "bcrypt";
 import { and, eq } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import * as z from "zod";
+import crypto from "node:crypto";
 import { db } from "../db";
 import { users } from "../db/schema";
+import { sendEmail } from "./email";
 import { safeParseAndThrow } from "./utils";
 
 const getJWTSecret = createServerOnlyFn(() => {
@@ -195,3 +197,95 @@ export async function requireUser() {
 
 	return authStatus.user;
 }
+
+const RequestResetInput = z.object({
+	email: z.email("Invalid email address"),
+});
+
+export const requestPasswordReset = createServerFn({ method: "POST" })
+	.inputValidator(RequestResetInput)
+	.handler(async ({ data }) => {
+		const { email } = safeParseAndThrow(data, RequestResetInput);
+
+		// 1. Find user
+		const [user] = await db
+			.select()
+			.from(users)
+			.where(eq(users.username, email))
+			.limit(1);
+
+		if (!user) {
+			// Don't reveal if user exists or not for security
+			return { success: true };
+		}
+
+		// 2. Generate token
+		const token = crypto.randomBytes(32).toString("hex");
+		const expires = new Date(Date.now() + 3600000); // 1 hour from now
+
+		// 3. Store token in DB
+		await db
+			.update(users)
+			.set({
+				resetPasswordToken: token,
+				resetPasswordExpires: expires,
+			})
+			.where(eq(users.id, user.id));
+
+		// 4. Send email
+		const resetUrl = `${process.env.APP_URL}/reset-password?token=${token}`;
+
+		try {
+			await sendEmail({
+				to: email,
+				subject: "Password Reset Request",
+				message: `You requested a password reset. Please click the link below to reset your password:\n\n${resetUrl}\n\nThis link will expire in 1 hour. If you didn't request this, please ignore this email.`,
+			});
+		} catch (error) {
+			console.error("Failed to send reset email:", error);
+			// Optional: you might want to handle this differently
+		}
+
+		return { success: true };
+	});
+
+const ResetPasswordInput = z.object({
+	token: z.string().min(1, "Token is required"),
+	password: z.string().min(8, "Password must be at least 8 characters"),
+});
+
+export const resetPassword = createServerFn({ method: "POST" })
+	.inputValidator(ResetPasswordInput)
+	.handler(async ({ data }) => {
+		const { token, password } = safeParseAndThrow(data, ResetPasswordInput);
+
+		// 1. Find user with valid token
+		const [user] = await db
+			.select()
+			.from(users)
+			.where(eq(users.resetPasswordToken, token))
+			.limit(1);
+
+		if (
+			!user ||
+			!user.resetPasswordExpires ||
+			user.resetPasswordExpires < new Date()
+		) {
+			throw new Error("Invalid or expired reset token");
+		}
+
+		// 2. Hash new password
+		const hashedPassword = await hash(password, 10);
+
+		// 3. Update password and clear token
+		await db
+			.update(users)
+			.set({
+				password: hashedPassword,
+				resetPasswordToken: null,
+				resetPasswordExpires: null,
+			})
+			.where(eq(users.id, user.id));
+
+		return { success: true };
+	});

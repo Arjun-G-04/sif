@@ -9,6 +9,8 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as ForgotRouteImport } from './routes/forgot'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RegistrationIndexRouteImport } from './routes/registration/index'
 import { Route as OfficeIndexRouteImport } from './routes/office/index'
@@ -26,6 +28,16 @@ import { Route as OfficeRegistrationViewRegIdRouteImport } from './routes/office
 import { Route as OfficeEquipmentEditEqIdRouteImport } from './routes/office/equipment/edit/$eqId'
 import { Route as OfficeBookingViewBookingIdRouteImport } from './routes/office/booking/view/$bookingId'
 
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotRoute = ForgotRouteImport.update({
+  id: '/forgot',
+  path: '/forgot',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -115,6 +127,8 @@ const OfficeBookingViewBookingIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/forgot': typeof ForgotRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/book/$eqId': typeof BookEqIdRoute
   '/bookings/$bookingId': typeof BookingsBookingIdRoute
   '/book': typeof BookIndexRoute
@@ -133,6 +147,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/forgot': typeof ForgotRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/book/$eqId': typeof BookEqIdRoute
   '/bookings/$bookingId': typeof BookingsBookingIdRoute
   '/book': typeof BookIndexRoute
@@ -152,6 +168,8 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/forgot': typeof ForgotRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/book/$eqId': typeof BookEqIdRoute
   '/bookings/$bookingId': typeof BookingsBookingIdRoute
   '/book/': typeof BookIndexRoute
@@ -172,6 +190,8 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/forgot'
+    | '/reset-password'
     | '/book/$eqId'
     | '/bookings/$bookingId'
     | '/book'
@@ -190,6 +210,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/forgot'
+    | '/reset-password'
     | '/book/$eqId'
     | '/bookings/$bookingId'
     | '/book'
@@ -208,6 +230,8 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/forgot'
+    | '/reset-password'
     | '/book/$eqId'
     | '/bookings/$bookingId'
     | '/book/'
@@ -227,6 +251,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ForgotRoute: typeof ForgotRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   BookEqIdRoute: typeof BookEqIdRoute
   BookingsBookingIdRoute: typeof BookingsBookingIdRoute
   BookIndexRoute: typeof BookIndexRoute
@@ -246,6 +272,20 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot': {
+      id: '/forgot'
+      path: '/forgot'
+      fullPath: '/forgot'
+      preLoaderRoute: typeof ForgotRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -363,6 +403,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ForgotRoute: ForgotRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   BookEqIdRoute: BookEqIdRoute,
   BookingsBookingIdRoute: BookingsBookingIdRoute,
   BookIndexRoute: BookIndexRoute,

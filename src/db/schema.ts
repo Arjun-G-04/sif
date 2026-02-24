@@ -26,6 +26,8 @@ export const users = pgTable("users", {
 	registrationId: integer("registration_id").references(
 		() => registrations.id,
 	),
+	resetPasswordToken: text("reset_password_token"),
+	resetPasswordExpires: timestamp("reset_password_expires"),
 });
 
 export const registrations = pgTable("registrations", {
