@@ -16,6 +16,7 @@ import { Route as RegistrationIndexRouteImport } from './routes/registration/ind
 import { Route as OfficeIndexRouteImport } from './routes/office/index'
 import { Route as BookingsIndexRouteImport } from './routes/bookings/index'
 import { Route as BookIndexRouteImport } from './routes/book/index'
+import { Route as OfficeAnalyticsRouteImport } from './routes/office/analytics'
 import { Route as BookingsBookingIdRouteImport } from './routes/bookings/$bookingId'
 import { Route as BookEqIdRouteImport } from './routes/book/$eqId'
 import { Route as OfficeConfigurationIndexRouteImport } from './routes/office/configuration/index'
@@ -61,6 +62,11 @@ const BookingsIndexRoute = BookingsIndexRouteImport.update({
 const BookIndexRoute = BookIndexRouteImport.update({
   id: '/book/',
   path: '/book/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OfficeAnalyticsRoute = OfficeAnalyticsRouteImport.update({
+  id: '/office/analytics',
+  path: '/office/analytics',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BookingsBookingIdRoute = BookingsBookingIdRouteImport.update({
@@ -131,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/book/$eqId': typeof BookEqIdRoute
   '/bookings/$bookingId': typeof BookingsBookingIdRoute
+  '/office/analytics': typeof OfficeAnalyticsRoute
   '/book': typeof BookIndexRoute
   '/bookings': typeof BookingsIndexRoute
   '/office': typeof OfficeIndexRoute
@@ -151,6 +158,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/book/$eqId': typeof BookEqIdRoute
   '/bookings/$bookingId': typeof BookingsBookingIdRoute
+  '/office/analytics': typeof OfficeAnalyticsRoute
   '/book': typeof BookIndexRoute
   '/bookings': typeof BookingsIndexRoute
   '/office': typeof OfficeIndexRoute
@@ -172,6 +180,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/book/$eqId': typeof BookEqIdRoute
   '/bookings/$bookingId': typeof BookingsBookingIdRoute
+  '/office/analytics': typeof OfficeAnalyticsRoute
   '/book/': typeof BookIndexRoute
   '/bookings/': typeof BookingsIndexRoute
   '/office/': typeof OfficeIndexRoute
@@ -194,6 +203,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/book/$eqId'
     | '/bookings/$bookingId'
+    | '/office/analytics'
     | '/book'
     | '/bookings'
     | '/office'
@@ -214,6 +224,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/book/$eqId'
     | '/bookings/$bookingId'
+    | '/office/analytics'
     | '/book'
     | '/bookings'
     | '/office'
@@ -234,6 +245,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/book/$eqId'
     | '/bookings/$bookingId'
+    | '/office/analytics'
     | '/book/'
     | '/bookings/'
     | '/office/'
@@ -255,6 +267,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   BookEqIdRoute: typeof BookEqIdRoute
   BookingsBookingIdRoute: typeof BookingsBookingIdRoute
+  OfficeAnalyticsRoute: typeof OfficeAnalyticsRoute
   BookIndexRoute: typeof BookIndexRoute
   BookingsIndexRoute: typeof BookingsIndexRoute
   OfficeIndexRoute: typeof OfficeIndexRoute
@@ -319,6 +332,13 @@ declare module '@tanstack/react-router' {
       path: '/book'
       fullPath: '/book'
       preLoaderRoute: typeof BookIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/office/analytics': {
+      id: '/office/analytics'
+      path: '/office/analytics'
+      fullPath: '/office/analytics'
+      preLoaderRoute: typeof OfficeAnalyticsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/bookings/$bookingId': {
@@ -407,6 +427,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   BookEqIdRoute: BookEqIdRoute,
   BookingsBookingIdRoute: BookingsBookingIdRoute,
+  OfficeAnalyticsRoute: OfficeAnalyticsRoute,
   BookIndexRoute: BookIndexRoute,
   BookingsIndexRoute: BookingsIndexRoute,
   OfficeIndexRoute: OfficeIndexRoute,

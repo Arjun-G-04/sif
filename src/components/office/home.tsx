@@ -10,7 +10,7 @@ import { UserIcon } from "@/components/svgs";
 import { Action } from "../general/action";
 import type { AuthPayload } from "@/lib/auth";
 import { Header } from "./header";
-import { Calendar, Settings2, Wrench } from "lucide-react";
+import { Calendar, Wrench } from "lucide-react";
 
 const DASHBOARD_ITEMS = [
 	{
@@ -54,15 +54,15 @@ const DASHBOARD_ITEMS = [
 		],
 	},
 	{
-		title: "Configuration",
-		description: "Manage portal configuration",
-		icon: Settings2,
-		iconColor: "text-purple-600",
-		iconBg: "bg-purple-50",
+		title: "Analytics",
+		description: "View equipment and booking statistics",
+		icon: Calendar,
+		iconColor: "text-indigo-600",
+		iconBg: "bg-indigo-50",
 		actions: [
 			{
-				to: "/office/configuration",
-				label: "Change configuration values",
+				to: "/office/analytics",
+				label: "View detailed analytics",
 			},
 		],
 	},
