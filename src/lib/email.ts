@@ -9,10 +9,12 @@ const SendEmailInput = z.object({
 });
 
 const transporter = nodemailer.createTransport({
-	service: "gmail",
+	host: "students.nitt.edu",
+	port: 465,
+	secure: true,
 	auth: {
-		user: process.env.GMAIL_USER,
-		pass: process.env.GMAIL_APP_PASSWORD,
+		user: process.env.NITT_USER,
+		pass: process.env.NITT_PASSWORD,
 	},
 });
 
@@ -21,7 +23,7 @@ export const sendEmail = createServerOnlyFn(
 		const parsed = SendEmailInput.parse(input);
 
 		const mailOptions = {
-			from: process.env.GMAIL_USER,
+			from: process.env.NITT_USER,
 			to: parsed.to,
 			subject: parsed.subject ?? "Message from SIF",
 			text: parsed.message,

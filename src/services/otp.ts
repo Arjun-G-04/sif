@@ -145,11 +145,7 @@ export const sendOtp = createServerFn({ method: "POST" })
 		// Record request for rate limiting
 		recordRequest(parsedData.target);
 
-		if (process.env.NODE_ENV === "development") {
-			console.log(
-				`[DEV] ${parsedData.type} OTP for ${parsedData.target}: ${otp}`,
-			);
-		} else if (parsedData.type === "email") {
+		if (parsedData.type === "email") {
 			await sendEmail({
 				to: parsedData.target,
 				message: `Your OTP is ${otp}`,
