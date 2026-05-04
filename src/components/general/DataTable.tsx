@@ -155,7 +155,8 @@ export function DataTable<T>({
 				new Set(
 					data
 						.map((item) => {
-							const value = item[column.accessorKey!];
+							if (!column.accessorKey) return null;
+							const value = item[column.accessorKey];
 							if (
 								value === null ||
 								value === undefined ||
@@ -288,7 +289,7 @@ export function DataTable<T>({
 		if (hasFiltering) {
 			setCurrentPage(1);
 		}
-	}, [columnFilters, hasFiltering]);
+	}, [hasFiltering]);
 
 	const paginatedData = useMemo(() => {
 		if (!pagination) return sortedData;
@@ -608,12 +609,16 @@ export function DataTable<T>({
 													isSortable &&
 														"cursor-pointer select-none hover:bg-slate-50 transition-colors",
 												)}
-												onClick={() =>
-													isSortable &&
-													handleSort(
-														column.accessorKey!,
-													)
-												}
+												onClick={() => {
+													if (
+														isSortable &&
+														column.accessorKey
+													) {
+														handleSort(
+															column.accessorKey,
+														);
+													}
+												}}
 											>
 												<div className="flex items-center gap-1">
 													{column.header}
