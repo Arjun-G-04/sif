@@ -44,16 +44,28 @@ function BookingViewPage() {
 			header: "Booking No.",
 			accessorKey: "id",
 			className: "font-semibold",
+			filter: {
+				type: "number",
+				placeholder: "Search booking",
+			},
 		},
 		{
 			header: "User",
 			accessorKey: "userEmail",
 			cell: (booking) => booking.userEmail ?? "-",
+			filter: {
+				type: "text",
+				placeholder: "Search user",
+			},
 		},
 		{
 			header: "Equipment",
 			accessorKey: "equipmentName",
 			cell: (booking) => booking.equipmentName ?? "-",
+			filter: {
+				type: "select",
+				placeholder: "All equipment",
+			},
 		},
 		{
 			header: "Status",
@@ -68,6 +80,11 @@ function BookingViewPage() {
 					{booking.status === "rejected" && (
 						<span className="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20">
 							Rejected
+						</span>
+					)}
+					{booking.status === "payment_rejected" && (
+						<span className="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20">
+							Payment Rejected
 						</span>
 					)}
 					{booking.status === "pending" && (
@@ -92,11 +109,30 @@ function BookingViewPage() {
 					)}
 				</>
 			),
+			filter: {
+				type: "select",
+				placeholder: "All statuses",
+				options: [
+					{ label: "Payment", value: "payment" },
+					{ label: "Rejected", value: "rejected" },
+					{ label: "Payment Rejected", value: "payment_rejected" },
+					{ label: "Pending", value: "pending" },
+					{ label: "Processing", value: "processing" },
+					{
+						label: "Verifying Payment",
+						value: "payment_verification",
+					},
+					{ label: "Completed", value: "completed" },
+				],
+			},
 		},
 		{
 			header: "Created At",
 			accessorKey: "createdAt",
 			cell: (booking) => formatDate(booking.createdAt),
+			filter: {
+				type: "dateRange",
+			},
 		},
 		{
 			header: "Actions",
@@ -126,6 +162,7 @@ function BookingViewPage() {
 						data={bookings.data}
 						columns={columns}
 						keyExtractor={(item) => item.id}
+						enableFiltering
 						onRowClick={(booking) =>
 							navigate({
 								to: "/office/booking/view/$bookingId",

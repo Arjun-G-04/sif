@@ -140,6 +140,7 @@ function UserBookingDetailPage() {
 
 					{(data.status === "payment" ||
 						data.status === "payment_verification" ||
+						data.status === "payment_rejected" ||
 						data.status === "processing" ||
 						data.status === "completed") && (
 						<div className="p-6 md:p-8 bg-blue-50/50 border border-blue-100 rounded-xl grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -162,12 +163,15 @@ function UserBookingDetailPage() {
 						</div>
 					)}
 
-					{data.status === "rejected" && (
+					{(data.status === "rejected" ||
+						data.status === "payment_rejected") && (
 						<div className="bg-red-50 border border-red-200 p-4 rounded-lg flex items-start gap-3">
 							<AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
 							<div>
 								<h3 className="font-semibold text-red-900">
-									Booking Rejected
+									{data.status === "payment_rejected"
+										? "Payment Rejected"
+										: "Booking Rejected"}
 								</h3>
 								<p className="text-red-700 text-sm">
 									Reason: {data.rejectionReason}
@@ -205,12 +209,15 @@ function UserBookingDetailPage() {
 														"payment_verification"
 													? "Payment Verification"
 													: data.status ===
-															"processing"
-														? "Processing"
+															"payment_rejected"
+														? "Payment Rejected"
 														: data.status ===
-																"completed"
-															? "Completed"
-															: data.status.toUpperCase()
+																"processing"
+															? "Processing"
+															: data.status ===
+																	"completed"
+																? "Completed"
+																: data.status.toUpperCase()
 									}
 									status={data.status}
 								/>
@@ -466,6 +473,11 @@ function DetailItem({
 					{status === "rejected" && (
 						<span className="inline-flex items-center rounded-md bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20">
 							Rejected
+						</span>
+					)}
+					{status === "payment_rejected" && (
+						<span className="inline-flex items-center rounded-md bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20">
+							Payment Rejected
 						</span>
 					)}
 					{status === "pending" && (

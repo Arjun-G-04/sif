@@ -13,6 +13,7 @@ export const bookingStatus = pgEnum("booking_status", [
 	"pending",
 	"payment",
 	"payment_verification",
+	"payment_rejected",
 	"processing",
 	"rejected",
 	"completed",

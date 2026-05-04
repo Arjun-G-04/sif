@@ -243,12 +243,15 @@ function BookingDetailPage() {
 						</div>
 					</div>
 
-					{data.status === "rejected" && (
+					{(data.status === "rejected" ||
+						data.status === "payment_rejected") && (
 						<div className="bg-red-50 border border-red-200 p-4 rounded-lg flex items-start gap-3">
 							<AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
 							<div>
 								<h3 className="font-semibold text-red-900">
-									Booking Rejected
+									{data.status === "payment_rejected"
+										? "Payment Rejected"
+										: "Booking Rejected"}
 								</h3>
 								<p className="text-red-700 text-sm">
 									Reason: {data.rejectionReason}
@@ -284,6 +287,7 @@ function BookingDetailPage() {
 									value={data.status.toUpperCase()}
 								/>
 								{(data.status === "payment" ||
+									data.status === "payment_rejected" ||
 									data.status === "processing") && (
 									<>
 										<DetailItem

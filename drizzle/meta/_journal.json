@@ -71,6 +71,13 @@
       "when": 1771947835984,
       "tag": "0009_heavy_mandarin",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1776836906390,
+      "tag": "0010_conscious_echo",
+      "breakpoints": true
     }
   ]
 }
