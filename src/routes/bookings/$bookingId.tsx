@@ -146,7 +146,7 @@ function UserBookingDetailPage() {
 						<div className="p-6 md:p-8 bg-blue-50/50 border border-blue-100 rounded-xl grid grid-cols-1 md:grid-cols-2 gap-8">
 							<div className="space-y-2">
 								<h3 className="text-sm font-semibold text-blue-900 uppercase tracking-wider">
-									Final Price
+									Final Testing Fee
 								</h3>
 								<p className="text-3xl font-bold text-blue-900">
 									₹{data.price}
