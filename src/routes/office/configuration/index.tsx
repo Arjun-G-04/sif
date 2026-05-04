@@ -5,12 +5,15 @@ import {
 	useSuspenseQuery,
 } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { FieldDialog } from "@/components/office/fieldDialog";
+import { FieldsView } from "@/components/office/fieldsView";
 import { Header } from "@/components/office/header";
 import { requireAdmin } from "@/lib/auth";
 import {
 	getConfiguration,
 	updateConfiguration,
 } from "@/services/configuration";
+import { getFields } from "@/services/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,11 +33,21 @@ export const configurationQueryOptions = queryOptions({
 	queryFn: () => getConfiguration(),
 });
 
+const defaultEquipmentFieldsQueryOptions = queryOptions({
+	queryKey: ["fields", "equipment", "defaults"],
+	queryFn: () => getFields({ data: { entityType: "equipment" } }),
+});
+
 export const Route = createFileRoute("/office/configuration/")({
 	component: ConfigurationPage,
 	loader: async ({ context }) => {
 		const user = await requireAdmin();
-		await context.queryClient.ensureQueryData(configurationQueryOptions);
+		await Promise.all([
+			context.queryClient.ensureQueryData(configurationQueryOptions),
+			context.queryClient.ensureQueryData(
+				defaultEquipmentFieldsQueryOptions,
+			),
+		]);
 		return user;
 	},
 });
@@ -42,6 +55,9 @@ export const Route = createFileRoute("/office/configuration/")({
 function ConfigurationPage() {
 	const user = Route.useLoaderData();
 	const configuration = useSuspenseQuery(configurationQueryOptions);
+	const defaultEquipmentFields = useSuspenseQuery(
+		defaultEquipmentFieldsQueryOptions,
+	);
 	const queryClient = useQueryClient();
 	const [officeEmail, setOfficeEmail] = useState(
 		configuration.data?.officeEmail || "",
@@ -132,6 +148,40 @@ function ConfigurationPage() {
 									</Button>
 								</div>
 							</form>
+						</CardContent>
+					</Card>
+
+					<Card>
+						<CardHeader>
+							<CardTitle>Equipment Default Fields</CardTitle>
+							<CardDescription>
+								Manage fields available as shared defaults for
+								equipment bookings.
+							</CardDescription>
+						</CardHeader>
+						<CardContent className="space-y-6">
+							<div className="flex justify-end">
+								<FieldDialog
+									entityType="equipment"
+									stage="initial"
+									allowedRelations={[
+										{
+											entityType: "registration",
+											label: "Registration",
+										},
+									]}
+								/>
+							</div>
+							<FieldsView
+								fields={defaultEquipmentFields.data}
+								stage="initial"
+								allowedRelations={[
+									{
+										entityType: "registration",
+										label: "Registration",
+									},
+								]}
+							/>
 						</CardContent>
 					</Card>
 				</div>

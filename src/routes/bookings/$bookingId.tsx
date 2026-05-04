@@ -52,14 +52,25 @@ function UserBookingDetailPage() {
 
 	const { data: paymentFields } = useQuery({
 		queryKey: ["fields", "equipment", data.equipmentId, "payment"],
-		queryFn: () =>
-			getFields({
-				data: {
-					entityType: "equipment",
-					entityId: data.equipmentId,
-					stage: "payment",
-				},
-			}),
+		queryFn: async () => {
+			const [defaultFields, equipmentSpecificFields] = await Promise.all([
+				getFields({
+					data: {
+						entityType: "equipment",
+						stage: "payment",
+					},
+				}),
+				getFields({
+					data: {
+						entityType: "equipment",
+						entityId: data.equipmentId,
+						stage: "payment",
+					},
+				}),
+			]);
+
+			return [...defaultFields, ...equipmentSpecificFields];
+		},
 		enabled:
 			data.status === "payment" || data.status === "payment_verification",
 	});

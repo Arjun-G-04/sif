@@ -1,5 +1,6 @@
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { useMemo } from "react";
 import { FieldDialog } from "@/components/office/fieldDialog";
 import { FieldsView } from "@/components/office/fieldsView";
 import { Header } from "@/components/office/header";
@@ -23,6 +24,11 @@ const fieldsQueryOptions = (eqId: number) =>
 			}),
 	});
 
+const defaultFieldsQueryOptions = queryOptions({
+	queryKey: ["fields", "equipment", "defaults"],
+	queryFn: () => getFields({ data: { entityType: "equipment" } }),
+});
+
 export const Route = createFileRoute("/office/equipment/edit/$eqId")({
 	component: EquipmentFieldsPage,
 	loader: async ({ context, params }) => {
@@ -32,6 +38,7 @@ export const Route = createFileRoute("/office/equipment/edit/$eqId")({
 		await Promise.all([
 			context.queryClient.ensureQueryData(equipmentQueryOptions(eqId)),
 			context.queryClient.ensureQueryData(fieldsQueryOptions(eqId)),
+			context.queryClient.ensureQueryData(defaultFieldsQueryOptions),
 		]);
 
 		return { user, eqId };
@@ -42,6 +49,15 @@ function EquipmentFieldsPage() {
 	const { user, eqId } = Route.useLoaderData();
 	const equipmentQuery = useSuspenseQuery(equipmentQueryOptions(eqId));
 	const fieldsQuery = useSuspenseQuery(fieldsQueryOptions(eqId));
+	const defaultFieldsQuery = useSuspenseQuery(defaultFieldsQueryOptions);
+	const defaultFieldIds = useMemo(
+		() => defaultFieldsQuery.data.map((field) => field.id),
+		[defaultFieldsQuery.data],
+	);
+	const mergedFields = useMemo(
+		() => [...defaultFieldsQuery.data, ...fieldsQuery.data],
+		[defaultFieldsQuery.data, fieldsQuery.data],
+	);
 
 	return (
 		<div className="min-h-screen flex flex-col bg-slate-50/50">
@@ -54,7 +70,8 @@ function EquipmentFieldsPage() {
 								{equipmentQuery.data ?? "Equipment"} Fields
 							</h2>
 							<p className="text-slate-500">
-								Manage custom fields for this equipment.
+								Manage equipment-specific fields with default
+								fields visible as read-only reference.
 							</p>
 						</div>
 					</div>
@@ -93,8 +110,9 @@ function EquipmentFieldsPage() {
 								/>
 							</div>
 							<FieldsView
-								fields={fieldsQuery.data}
+								fields={mergedFields}
 								stage="initial"
+								readOnlyFieldIds={defaultFieldIds}
 								allowedRelations={[
 									{
 										entityType: "registration",
@@ -122,8 +140,9 @@ function EquipmentFieldsPage() {
 								/>
 							</div>
 							<FieldsView
-								fields={fieldsQuery.data}
+								fields={mergedFields}
 								stage="payment"
+								readOnlyFieldIds={defaultFieldIds}
 								allowedRelations={[
 									{
 										entityType: "registration",

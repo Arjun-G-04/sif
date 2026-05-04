@@ -1,5 +1,5 @@
 import { createServerOnlyFn } from "@tanstack/react-start";
-import { aliasedTable, and, eq, inArray } from "drizzle-orm";
+import { aliasedTable, and, eq, inArray, isNull, or } from "drizzle-orm";
 import { saveUploadedFile } from "@/lib/files";
 import { db } from "../../db";
 import {
@@ -30,7 +30,14 @@ export const parseFieldResponses = createServerOnlyFn(
 			.where(
 				and(
 					eq(fields.entityType, type),
-					entityId ? eq(fields.entityId, entityId) : undefined,
+					entityId === undefined
+						? isNull(fields.entityId)
+						: type === "equipment"
+							? or(
+									eq(fields.entityId, entityId),
+									isNull(fields.entityId),
+								)
+							: eq(fields.entityId, entityId),
 					eq(fields.active, true),
 				),
 			);

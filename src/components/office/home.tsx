@@ -10,7 +10,7 @@ import { UserIcon } from "@/components/svgs";
 import { Action } from "../general/action";
 import type { AuthPayload } from "@/lib/auth";
 import { Header } from "./header";
-import { Calendar, Wrench } from "lucide-react";
+import { Calendar, Settings, Wrench } from "lucide-react";
 
 const DASHBOARD_ITEMS = [
 	{
@@ -63,6 +63,19 @@ const DASHBOARD_ITEMS = [
 			{
 				to: "/office/analytics",
 				label: "View detailed analytics",
+			},
+		],
+	},
+	{
+		title: "Configuration",
+		description: "Manage system configuration",
+		icon: Settings,
+		iconColor: "text-slate-600",
+		iconBg: "bg-slate-100",
+		actions: [
+			{
+				to: "/office/configuration",
+				label: "Update system configuration",
 			},
 		],
 	},
