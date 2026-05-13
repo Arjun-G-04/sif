@@ -37,14 +37,19 @@ interface FieldsViewProps {
 	fields: Field[];
 	allowedRelations?: AllowedRelation;
 	stage?: (typeof fieldStage.enumValues)[number];
+	readOnly?: boolean;
+	readOnlyFieldIds?: number[];
 }
 
 export function FieldsView({
 	fields,
 	allowedRelations,
 	stage,
+	readOnly = false,
+	readOnlyFieldIds = [],
 }: FieldsViewProps) {
 	const queryClient = useQueryClient();
+	const readOnlyFieldIdSet = new Set(readOnlyFieldIds);
 
 	const filteredFields = stage
 		? fields.filter((f) => f.stage === stage)
@@ -87,10 +92,11 @@ export function FieldsView({
 
 	// Helper to render a field row, potentially with indentation
 	const renderFieldRow = (field: Field, depth = 0) => {
+		const isRowReadOnly = readOnly || readOnlyFieldIdSet.has(field.id);
 		return (
 			<TableRow
 				key={field.id}
-				className={depth > 0 ? "bg-slate-50/50" : ""}
+				className={`${depth > 0 ? "bg-slate-50/50" : ""} ${isRowReadOnly ? "opacity-80" : ""}`}
 			>
 				<TableCell className="font-medium text-gray-500">
 					<div className="flex items-center">
@@ -170,121 +176,140 @@ export function FieldsView({
 						</span>
 					)}
 				</TableCell>
-				<TableCell className="text-center">
-					<FieldDialog
-						entityType={field.entityType}
-						field={field}
-						stage={stage}
-						allowedRelations={allowedRelations}
-						trigger={
-							<Button
-								variant="ghost"
-								size="sm"
-								className="h-8 w-8 p-0"
-							>
-								<Pencil className="h-4 w-4 text-slate-500" />
-							</Button>
-						}
-					/>
-				</TableCell>
-				<TableCell className="text-center">
-					{field.active ? (
-						<AlertDialog>
-							<AlertDialogTrigger asChild>
-								<Button
-									variant="ghost"
-									size="sm"
-									className="h-8 w-8 p-0 hover:text-amber-600 hover:bg-amber-50"
-								>
-									<EyeOff className="h-4 w-4" />
-								</Button>
-							</AlertDialogTrigger>
-							<AlertDialogContent>
-								<AlertDialogHeader>
-									<AlertDialogTitle>
-										Deactivate Field?
-									</AlertDialogTitle>
-									<AlertDialogDescription>
-										Existing collected data won't be
-										affected but in future users won't be
-										shown this field anymore.
-									</AlertDialogDescription>
-								</AlertDialogHeader>
-								<AlertDialogFooter>
-									<AlertDialogCancel>
-										Cancel
-									</AlertDialogCancel>
-									<AlertDialogAction
-										className="bg-amber-600 hover:bg-amber-700"
+				{!readOnly &&
+					(isRowReadOnly ? (
+						<TableCell colSpan={3} className="text-center">
+							<div className="h-8 flex items-center justify-center">
+								<span className="text-xs text-slate-500 font-medium">
+									Default
+								</span>
+							</div>
+						</TableCell>
+					) : (
+						<>
+							<TableCell className="text-center">
+								<FieldDialog
+									entityType={field.entityType}
+									field={field}
+									stage={stage}
+									allowedRelations={allowedRelations}
+									trigger={
+										<Button
+											variant="ghost"
+											size="sm"
+											className="h-8 w-8 p-0"
+										>
+											<Pencil className="h-4 w-4 text-slate-500" />
+										</Button>
+									}
+								/>
+							</TableCell>
+							<TableCell className="text-center">
+								{field.active ? (
+									<AlertDialog>
+										<AlertDialogTrigger asChild>
+											<Button
+												variant="ghost"
+												size="sm"
+												className="h-8 w-8 p-0 hover:text-amber-600 hover:bg-amber-50"
+											>
+												<EyeOff className="h-4 w-4" />
+											</Button>
+										</AlertDialogTrigger>
+										<AlertDialogContent>
+											<AlertDialogHeader>
+												<AlertDialogTitle>
+													Deactivate Field?
+												</AlertDialogTitle>
+												<AlertDialogDescription>
+													Existing collected data
+													won't be affected but in
+													future users won't be shown
+													this field anymore.
+												</AlertDialogDescription>
+											</AlertDialogHeader>
+											<AlertDialogFooter>
+												<AlertDialogCancel>
+													Cancel
+												</AlertDialogCancel>
+												<AlertDialogAction
+													className="bg-amber-600 hover:bg-amber-700"
+													onClick={() =>
+														toggleMutation.mutate({
+															id: field.id,
+															active: false,
+														})
+													}
+												>
+													Deactivate
+												</AlertDialogAction>
+											</AlertDialogFooter>
+										</AlertDialogContent>
+									</AlertDialog>
+								) : (
+									<Button
+										variant="ghost"
+										size="sm"
+										className="h-8 w-8 p-0 hover:text-green-600 hover:bg-green-50"
 										onClick={() =>
 											toggleMutation.mutate({
 												id: field.id,
-												active: false,
+												active: true,
 											})
 										}
 									>
-										Deactivate
-									</AlertDialogAction>
-								</AlertDialogFooter>
-							</AlertDialogContent>
-						</AlertDialog>
-					) : (
-						<Button
-							variant="ghost"
-							size="sm"
-							className="h-8 w-8 p-0 hover:text-green-600 hover:bg-green-50"
-							onClick={() =>
-								toggleMutation.mutate({
-									id: field.id,
-									active: true,
-								})
-							}
-						>
-							<Eye className="h-4 w-4" />
-							<span className="sr-only">Activate</span>
-						</Button>
-					)}
-				</TableCell>
-				<TableCell className="text-center">
-					<AlertDialog>
-						<AlertDialogTrigger asChild>
-							<Button
-								variant="ghost"
-								size="sm"
-								className="h-8 w-8 p-0 hover:text-red-600 hover:bg-red-50"
-							>
-								<Trash2 className="h-4 w-4" />
-							</Button>
-						</AlertDialogTrigger>
-						<AlertDialogContent>
-							<AlertDialogHeader>
-								<AlertDialogTitle>
-									Permanently Delete Field?
-								</AlertDialogTitle>
-								<AlertDialogDescription className="text-red-600 font-medium">
-									Warning: This will permanently delete the
-									field, all its child fields, all its
-									options, and ALL responses collected so far
-									across all tables. This action CANNOT be
-									undone.
-								</AlertDialogDescription>
-							</AlertDialogHeader>
-							<AlertDialogFooter>
-								<AlertDialogCancel>Cancel</AlertDialogCancel>
-								<AlertDialogAction
-									className="bg-red-600 hover:bg-red-700"
-									onClick={() =>
-										deleteMutation.mutate({
-											id: field.id,
-										})
-									}
-								>
-									Delete Permanently
-								</AlertDialogAction>
-							</AlertDialogFooter>
-						</AlertDialogContent>
-					</AlertDialog>
-				</TableCell>
+										<Eye className="h-4 w-4" />
+										<span className="sr-only">
+											Activate
+										</span>
+									</Button>
+								)}
+							</TableCell>
+							<TableCell className="text-center">
+								<AlertDialog>
+									<AlertDialogTrigger asChild>
+										<Button
+											variant="ghost"
+											size="sm"
+											className="h-8 w-8 p-0 hover:text-red-600 hover:bg-red-50"
+										>
+											<Trash2 className="h-4 w-4" />
+										</Button>
+									</AlertDialogTrigger>
+									<AlertDialogContent>
+										<AlertDialogHeader>
+											<AlertDialogTitle>
+												Permanently Delete Field?
+											</AlertDialogTitle>
+											<AlertDialogDescription className="text-red-600 font-medium">
+												Warning: This will permanently
+												delete the field, all its child
+												fields, all its options, and ALL
+												responses collected so far
+												across all tables. This action
+												CANNOT be undone.
+											</AlertDialogDescription>
+										</AlertDialogHeader>
+										<AlertDialogFooter>
+											<AlertDialogCancel>
+												Cancel
+											</AlertDialogCancel>
+											<AlertDialogAction
+												className="bg-red-600 hover:bg-red-700"
+												onClick={() =>
+													deleteMutation.mutate({
+														id: field.id,
+													})
+												}
+											>
+												Delete Permanently
+											</AlertDialogAction>
+										</AlertDialogFooter>
+									</AlertDialogContent>
+								</AlertDialog>
+							</TableCell>
+						</>
+					))}
 			</TableRow>
 		);
 	};
@@ -313,15 +338,19 @@ export function FieldsView({
 						<TableHead>Type</TableHead>
 						<TableHead>Options / Config</TableHead>
 						<TableHead>Active</TableHead>
-						<TableHead className="w-[50px] text-center">
-							Edit
-						</TableHead>
-						<TableHead className="w-[50px] text-center">
-							Inactive
-						</TableHead>
-						<TableHead className="w-[50px] text-center">
-							Delete
-						</TableHead>
+						{!readOnly && (
+							<>
+								<TableHead className="w-[50px] text-center">
+									Edit
+								</TableHead>
+								<TableHead className="w-[50px] text-center">
+									Inactive
+								</TableHead>
+								<TableHead className="w-[50px] text-center">
+									Delete
+								</TableHead>
+							</>
+						)}
 					</TableRow>
 				</TableHeader>
 				<TableBody>{renderFields(filteredFields)}</TableBody>

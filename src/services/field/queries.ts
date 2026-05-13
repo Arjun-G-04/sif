@@ -39,7 +39,9 @@ export const fetchFieldsFromDb = createServerOnlyFn(
 			.where(
 				and(
 					eq(fields.entityType, type),
-					id ? eq(fields.entityId, id) : undefined,
+					id === undefined
+						? isNull(fields.entityId)
+						: eq(fields.entityId, id),
 					stage ? eq(fields.stage, stage) : undefined,
 					includeInactive ? undefined : eq(fields.active, true),
 				),

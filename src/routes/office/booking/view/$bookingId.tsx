@@ -198,7 +198,7 @@ function BookingDetailPage() {
 										}
 									>
 										<Check className="w-4 h-4" />
-										Accept & Set Price
+										Accept & Set Testing Fee
 									</Button>
 								</>
 							)}
@@ -243,12 +243,15 @@ function BookingDetailPage() {
 						</div>
 					</div>
 
-					{data.status === "rejected" && (
+					{(data.status === "rejected" ||
+						data.status === "payment_rejected") && (
 						<div className="bg-red-50 border border-red-200 p-4 rounded-lg flex items-start gap-3">
 							<AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
 							<div>
 								<h3 className="font-semibold text-red-900">
-									Booking Rejected
+									{data.status === "payment_rejected"
+										? "Payment Rejected"
+										: "Booking Rejected"}
 								</h3>
 								<p className="text-red-700 text-sm">
 									Reason: {data.rejectionReason}
@@ -284,10 +287,11 @@ function BookingDetailPage() {
 									value={data.status.toUpperCase()}
 								/>
 								{(data.status === "payment" ||
+									data.status === "payment_rejected" ||
 									data.status === "processing") && (
 									<>
 										<DetailItem
-											label="Price"
+											label="Testing Fee"
 											value={`₹${data.price}`}
 										/>
 										<DetailItem
@@ -299,7 +303,7 @@ function BookingDetailPage() {
 								{data.status === "payment_verification" && (
 									<>
 										<DetailItem
-											label="Price"
+											label="Testing Fee"
 											value={`₹${data.price}`}
 										/>
 										<DetailItem
@@ -311,7 +315,7 @@ function BookingDetailPage() {
 								{data.status === "completed" && (
 									<>
 										<DetailItem
-											label="Price"
+											label="Testing Fee"
 											value={`₹${data.price}`}
 										/>
 										<DetailItem
@@ -344,13 +348,13 @@ function BookingDetailPage() {
 					<DialogHeader>
 						<DialogTitle>Accept Booking</DialogTitle>
 						<DialogDescription>
-							Set the final price and any additional remarks for
-							the user.
+							Set the final testing fee and any additional remarks
+							for the user.
 						</DialogDescription>
 					</DialogHeader>
 					<div className="space-y-4 py-4 text-sm">
 						<div className="space-y-2 text-sm">
-							<Label htmlFor={priceId}>Price (₹)</Label>
+							<Label htmlFor={priceId}>Testing Fee (₹)</Label>
 							<Input
 								id={priceId}
 								type="number"

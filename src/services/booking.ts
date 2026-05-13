@@ -195,9 +195,24 @@ export const rejectBooking = createServerFn({ method: "POST" })
 	.inputValidator(z.object({ bookingId: z.number(), reason: z.string() }))
 	.handler(async ({ data }) => {
 		await requireAdmin();
+		const [booking] = await db
+			.select({ status: bookings.status })
+			.from(bookings)
+			.where(eq(bookings.id, data.bookingId))
+			.limit(1);
+
+		if (!booking) {
+			throw new Error("Booking not found");
+		}
+
+		const status =
+			booking.status === "payment_verification"
+				? "payment_rejected"
+				: "rejected";
+
 		await db
 			.update(bookings)
-			.set({ status: "rejected", rejectionReason: data.reason })
+			.set({ status, rejectionReason: data.reason })
 			.where(eq(bookings.id, data.bookingId));
 		return { success: true };
 	});

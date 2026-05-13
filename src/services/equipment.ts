@@ -111,13 +111,17 @@ export const getEquipmentFields = createServerFn({ method: "GET" })
 		const user = await requireUser();
 		const parsedData = safeParseAndThrow(data, GetEquipmentFieldsInput);
 
-		// Fetch equipment fields
-		const equipmentFields = await fetchFieldsFromDb(
-			"equipment",
-			false,
-			parsedData.equipmentId,
-			"initial",
-		);
+		// Fetch global defaults and equipment-specific fields.
+		const [defaultFields, equipmentSpecificFields] = await Promise.all([
+			fetchFieldsFromDb("equipment", false, undefined, "initial"),
+			fetchFieldsFromDb(
+				"equipment",
+				false,
+				parsedData.equipmentId,
+				"initial",
+			),
+		]);
+		const equipmentFields = [...defaultFields, ...equipmentSpecificFields];
 
 		const [dbUser] = await db
 			.select({ regId: users.registrationId })
