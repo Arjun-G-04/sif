@@ -78,6 +78,13 @@
       "when": 1776836906390,
       "tag": "0010_conscious_echo",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1779727525678,
+      "tag": "0011_rainy_magneto",
+      "breakpoints": true
     }
   ]
 }

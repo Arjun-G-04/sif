@@ -131,6 +131,8 @@ function UserBookingDetailPage() {
 	const paymentResponses = sortedResponses.filter(
 		(r) => r.stage === "payment",
 	);
+	const gstAmount = data.gst ?? 0;
+	const totalAmount = (data.price ?? 0) + gstAmount;
 
 	return (
 		<div className="min-h-screen bg-slate-50/50 flex flex-col pb-12">
@@ -157,18 +159,21 @@ function UserBookingDetailPage() {
 						<div className="p-6 md:p-8 bg-blue-50/50 border border-blue-100 rounded-xl grid grid-cols-1 md:grid-cols-2 gap-8">
 							<div className="space-y-2">
 								<h3 className="text-sm font-semibold text-blue-900 uppercase tracking-wider">
-									Final Testing Fee
+									Total Charges (Testing Fee + GST)
 								</h3>
-								<p className="text-3xl font-bold text-blue-900">
-									₹{data.price}
-								</p>
+								<div className="space-y-1 text-blue-900">
+									<p className="text-3xl font-bold">
+										₹{data.price ?? 0} + ₹{data.gst ?? 0} =
+										₹{totalAmount}
+									</p>
+								</div>
 							</div>
 							<div className="space-y-2">
 								<h3 className="text-sm font-semibold text-blue-900 uppercase tracking-wider">
 									Admin Remarks
 								</h3>
 								<p className="text-blue-800 text-sm leading-relaxed whitespace-pre-wrap italic">
-									"{data.remarks || "No remarks provided."}"
+									{data.remarks || "No remarks provided."}
 								</p>
 							</div>
 						</div>

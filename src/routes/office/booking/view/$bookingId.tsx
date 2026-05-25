@@ -66,12 +66,21 @@ function BookingDetailPage() {
 		useState(false);
 	const [isCompleteDialogOpen, setIsCompleteDialogOpen] = useState(false);
 	const [price, setPrice] = useState(data.price?.toString() || "");
+	const [gst, setGst] = useState(data.gst?.toString() || "");
 	const [remarks, setRemarks] = useState(data.remarks || "");
 	const [rejectionReason, setRejectionReason] = useState("");
 
 	const priceId = useId();
+	const gstId = useId();
 	const remarksId = useId();
 	const reasonId = useId();
+	const gstAmount = data.gst ?? 0;
+	const totalAmount = (data.price ?? 0) + gstAmount;
+	const previewPrice = Number(price);
+	const previewGst = Number(gst);
+	const previewTotal =
+		(Number.isNaN(previewPrice) ? 0 : previewPrice) +
+		(Number.isNaN(previewGst) ? 0 : previewGst);
 
 	const acceptMutation = useMutation({
 		mutationFn: acceptBooking,
@@ -130,10 +139,15 @@ function BookingDetailPage() {
 			toast.error("Please enter a valid price");
 			return;
 		}
+		if (!gst || Number.isNaN(Number(gst))) {
+			toast.error("Please enter a valid GST");
+			return;
+		}
 		acceptMutation.mutate({
 			data: {
 				bookingId,
 				price: Number(price),
+				gst: Number(gst),
 				remarks,
 			},
 		});
@@ -198,7 +212,7 @@ function BookingDetailPage() {
 										}
 									>
 										<Check className="w-4 h-4" />
-										Accept & Set Testing Fee
+										Accept & Set Charges
 									</Button>
 								</>
 							)}
@@ -291,8 +305,8 @@ function BookingDetailPage() {
 									data.status === "processing") && (
 									<>
 										<DetailItem
-											label="Testing Fee"
-											value={`₹${data.price}`}
+											label="Total (Testing Fee + GST)"
+											value={`₹${data.price ?? 0} + ₹${data.gst ?? 0} = ₹${totalAmount}`}
 										/>
 										<DetailItem
 											label="Remarks"
@@ -303,8 +317,8 @@ function BookingDetailPage() {
 								{data.status === "payment_verification" && (
 									<>
 										<DetailItem
-											label="Testing Fee"
-											value={`₹${data.price}`}
+											label="Total (Testing Fee + GST)"
+											value={`₹${data.price ?? 0} + ₹${data.gst ?? 0} = ₹${totalAmount}`}
 										/>
 										<DetailItem
 											label="Remarks"
@@ -315,8 +329,8 @@ function BookingDetailPage() {
 								{data.status === "completed" && (
 									<>
 										<DetailItem
-											label="Testing Fee"
-											value={`₹${data.price}`}
+											label="Total (Testing Fee + GST)"
+											value={`₹${data.price ?? 0} + ₹${data.gst ?? 0} = ₹${totalAmount}`}
 										/>
 										<DetailItem
 											label="Remarks"
@@ -348,8 +362,8 @@ function BookingDetailPage() {
 					<DialogHeader>
 						<DialogTitle>Accept Booking</DialogTitle>
 						<DialogDescription>
-							Set the final testing fee and any additional remarks
-							for the user.
+							Set the final testing fee, GST, and any additional
+							remarks for the user.
 						</DialogDescription>
 					</DialogHeader>
 					<div className="space-y-4 py-4 text-sm">
@@ -364,6 +378,16 @@ function BookingDetailPage() {
 							/>
 						</div>
 						<div className="space-y-2 text-sm">
+							<Label htmlFor={gstId}>GST (₹)</Label>
+							<Input
+								id={gstId}
+								type="number"
+								placeholder="Enter GST amount"
+								value={gst}
+								onChange={(e) => setGst(e.target.value)}
+							/>
+						</div>
+						<div className="space-y-2 text-sm">
 							<Label htmlFor={remarksId}>Remarks for User</Label>
 							<Textarea
 								id={remarksId}
@@ -371,6 +395,14 @@ function BookingDetailPage() {
 								value={remarks}
 								onChange={(e) => setRemarks(e.target.value)}
 							/>
+						</div>
+						<div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+							<p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+								Total
+							</p>
+							<p className="text-lg font-semibold text-slate-900">
+								₹{previewTotal}
+							</p>
 						</div>
 					</div>
 					<DialogFooter>

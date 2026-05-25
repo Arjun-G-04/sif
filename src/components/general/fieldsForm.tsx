@@ -56,6 +56,16 @@ interface FormProps {
 
 type FormValues = Record<string, unknown>; // Using unknown for dynamic keys
 
+const requiredFileSchema = (fieldName: string) =>
+	z
+		.unknown()
+		.refine(
+			(value) =>
+				(value instanceof FileList && value.length > 0) ||
+				value instanceof File,
+			`${fieldName} is required`,
+		);
+
 function ValueShowcase({ field, value }: { field: FieldType; value: unknown }) {
 	if (
 		field.type === "heading" ||
@@ -272,7 +282,7 @@ export function FieldsForm({
 						.array(z.string())
 						.min(1, `Select at least one option for ${field.name}`);
 				} else if (field.type === "file") {
-					fieldSchema = z.unknown().optional();
+					fieldSchema = requiredFileSchema(field.name);
 				}
 				schemaObject[field.id.toString()] = fieldSchema;
 			}

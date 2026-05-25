@@ -121,6 +121,7 @@ export const getBooking = createServerFn({ method: "GET" })
 				createdAt: bookings.createdAt,
 				status: bookings.status,
 				price: bookings.price,
+				gst: bookings.gst,
 				remarks: bookings.remarks,
 				rejectionReason: bookings.rejectionReason,
 				userEmail: users.username,
@@ -174,6 +175,7 @@ export const acceptBooking = createServerFn({ method: "POST" })
 		z.object({
 			bookingId: z.number(),
 			price: z.number(),
+			gst: z.number(),
 			remarks: z.string().optional(),
 		}),
 	)
@@ -184,6 +186,7 @@ export const acceptBooking = createServerFn({ method: "POST" })
 			.set({
 				status: "payment",
 				price: data.price,
+				gst: data.gst,
 				remarks: data.remarks,
 				rejectionReason: null,
 			})
@@ -279,6 +282,7 @@ export const getUserBooking = createServerFn({ method: "GET" })
 				equipmentId: bookings.equipmentId,
 				status: bookings.status,
 				price: bookings.price,
+				gst: bookings.gst,
 				remarks: bookings.remarks,
 				rejectionReason: bookings.rejectionReason,
 				equipmentName: equipments.name,

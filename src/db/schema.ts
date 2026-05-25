@@ -147,6 +147,7 @@ export const bookings = pgTable("bookings", {
 		.references(() => equipments.id, { onDelete: "cascade" }),
 	status: bookingStatus().notNull().default("pending"),
 	price: integer(),
+	gst: integer(),
 	remarks: text(),
 	rejectionReason: text("rejection_reason"),
 	createdAt: timestamp("created_at").defaultNow(),
