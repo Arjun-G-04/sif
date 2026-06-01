@@ -74,7 +74,12 @@ export function BookingFieldsEditor({
 			responseId: Number(id),
 			adminValue: val,
 		}));
-		updateMutation.mutate({ data: { responses: payload } });
+		updateMutation.mutate({
+			data: {
+				bookingId,
+				responses: payload,
+			},
+		});
 	};
 
 	const hasChanges = responses.some(

@@ -22,7 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { requireAdmin } from "@/lib/auth";
+import { requireOfficeUser } from "@/lib/auth";
 import {
 	acceptBooking,
 	completeBooking,
@@ -40,7 +40,7 @@ export const bookingQueryOptions = (bookingId: number) =>
 export const Route = createFileRoute("/office/booking/view/$bookingId")({
 	component: BookingDetailPage,
 	loader: async ({ context, params }) => {
-		const user = await requireAdmin();
+		const user = await requireOfficeUser();
 		const bookingId = Number(params.bookingId);
 		if (Number.isNaN(bookingId)) {
 			throw new Error("Invalid booking ID");

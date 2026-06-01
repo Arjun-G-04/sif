@@ -1,9 +1,16 @@
 import { createReadStream, statSync } from "node:fs";
 import { join } from "node:path";
 import { createFileRoute } from "@tanstack/react-router";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { fieldAdminFiles, fieldResponses, fields, users } from "@/db/schema";
+import {
+	bookings,
+	fieldAdminFiles,
+	fieldResponses,
+	fields,
+	operatorEquipments,
+	users,
+} from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { MEDIA_BASE } from "@/lib/files";
 
@@ -85,6 +92,7 @@ export const Route = createFileRoute("/api/file/")({
 						.select({
 							id: users.id,
 							registrationId: users.registrationId,
+							role: users.role,
 						})
 						.from(users)
 						.where(eq(users.username, authUser.username))
@@ -116,9 +124,15 @@ export const Route = createFileRoute("/api/file/")({
 							userId: fieldResponses.userId,
 							entityType: fieldResponses.entityType,
 							entityId: fieldResponses.entityId,
+							bookingId: fieldResponses.bookingId,
+							bookingEquipmentId: bookings.equipmentId,
 						})
 						.from(fieldResponses)
 						.leftJoin(fields, eq(fieldResponses.fieldId, fields.id))
+						.leftJoin(
+							bookings,
+							eq(fieldResponses.bookingId, bookings.id),
+						)
 						.where(eq(fieldResponses.id, responseId));
 
 					if (!response || !response.value) {
@@ -132,13 +146,44 @@ export const Route = createFileRoute("/api/file/")({
 					}
 
 					// Permission Check
-					const isAdmin = authUser.admin;
+					const isAdmin = authUser.role === "admin";
 					const isOwner = response.userId === dbUser.id;
 					const isRegistrationOwner =
 						response.entityType === "registration" &&
 						response.entityId === dbUser.registrationId;
 
-					if (!isAdmin && !isOwner && !isRegistrationOwner) {
+					let isOperatorBookingAssignee = false;
+					if (
+						authUser.role === "operator" &&
+						response.bookingId &&
+						response.bookingEquipmentId
+					) {
+						const [assignment] = await db
+							.select({ id: operatorEquipments.id })
+							.from(operatorEquipments)
+							.where(
+								and(
+									eq(
+										operatorEquipments.operatorId,
+										dbUser.id,
+									),
+									eq(
+										operatorEquipments.equipmentId,
+										response.bookingEquipmentId,
+									),
+								),
+							)
+							.limit(1);
+
+						isOperatorBookingAssignee = Boolean(assignment);
+					}
+
+					if (
+						!isAdmin &&
+						!isOwner &&
+						!isRegistrationOwner &&
+						!isOperatorBookingAssignee
+					) {
 						throw new Error("Unauthorized access to this file");
 					}
 

@@ -48,8 +48,10 @@ export function Header({
 						<span className="font-medium text-slate-900">
 							{user.username}
 						</span>
-						<span className="text-slate-500 text-xs">
-							Administrator
+						<span className="text-slate-500 text-xs capitalize">
+							{user.role === "operator"
+								? "Operator Mode"
+								: "Administrator"}
 						</span>
 					</div>
 					<Button

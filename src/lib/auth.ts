@@ -29,28 +29,38 @@ const PublicSignInInput = z.object({
 	password: z.string().min(1, "Password is required"),
 });
 
+const JWTAuthPayload = z.object({
+	username: z.string(),
+	role: z.enum(["public", "admin", "operator"]),
+});
+
+export type AuthPayload = z.infer<typeof JWTAuthPayload>;
+export type AuthRole = AuthPayload["role"];
+
 export const officeSignIn = createServerFn({ method: "POST" })
 	.inputValidator(OfficeSignInInput)
 	.handler(async ({ data }) => {
 		const parsedData = safeParseAndThrow(data, OfficeSignInInput);
 
-		// Check if user exists in database
 		const [user] = await db
-			.select()
+			.select({
+				username: users.username,
+				password: users.password,
+				role: users.role,
+			})
 			.from(users)
 			.where(
 				and(
 					eq(users.username, parsedData.username),
-					eq(users.role, "admin"),
+					eq(users.active, true),
 				),
 			)
 			.limit(1);
 
-		if (!user) {
+		if (!user || (user.role !== "admin" && user.role !== "operator")) {
 			throw new Error("Invalid username or password");
 		}
 
-		// Verify password with bcrypt
 		const isPasswordValid = await compare(
 			parsedData.password,
 			user.password,
@@ -60,18 +70,16 @@ export const officeSignIn = createServerFn({ method: "POST" })
 			throw new Error("Invalid username or password");
 		}
 
-		// Create JWT with username and admin boolean
 		const token = jwt.sign(
 			{
 				username: user.username,
-				admin: user.role === "admin",
+				role: user.role,
 			},
 			getJWTSecret(),
 			{ expiresIn: "7d" },
 		);
 
-		// Store JWT as HTTP-only cookie
-		const maxAge = 60 * 60 * 24 * 7; // 7 days
+		const maxAge = 60 * 60 * 24 * 7;
 		const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
 		const cookieValue = `auth_token=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${maxAge}${secure}`;
 		setResponseHeader("Set-Cookie", cookieValue);
@@ -82,14 +90,18 @@ export const publicSignIn = createServerFn({ method: "POST" })
 	.handler(async ({ data }) => {
 		const parsedData = safeParseAndThrow(data, PublicSignInInput);
 
-		// Check if user exists in database
 		const [user] = await db
-			.select()
+			.select({
+				username: users.username,
+				password: users.password,
+				role: users.role,
+			})
 			.from(users)
 			.where(
 				and(
 					eq(users.username, parsedData.username),
 					eq(users.role, "public"),
+					eq(users.active, true),
 				),
 			)
 			.limit(1);
@@ -98,7 +110,6 @@ export const publicSignIn = createServerFn({ method: "POST" })
 			throw new Error("Invalid username or password");
 		}
 
-		// Verify password with bcrypt
 		const isPasswordValid = await compare(
 			parsedData.password,
 			user.password,
@@ -108,27 +119,20 @@ export const publicSignIn = createServerFn({ method: "POST" })
 			throw new Error("Invalid username or password");
 		}
 
-		// Create JWT with username and admin boolean
 		const token = jwt.sign(
 			{
 				username: user.username,
-				admin: user.role === "admin",
+				role: user.role,
 			},
 			getJWTSecret(),
 			{ expiresIn: "7d" },
 		);
 
-		// Store JWT as HTTP-only cookie
-		const maxAge = 60 * 60 * 24 * 7; // 7 days
+		const maxAge = 60 * 60 * 24 * 7;
 		const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
 		const cookieValue = `auth_token=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${maxAge}${secure}`;
 		setResponseHeader("Set-Cookie", cookieValue);
 	});
-
-export type AuthPayload = {
-	username: string;
-	admin: boolean;
-};
 
 export const verifyAuth = createServerFn({ method: "GET" }).handler(
 	async () => {
@@ -152,8 +156,34 @@ export const verifyAuth = createServerFn({ method: "GET" }).handler(
 		}
 
 		try {
-			const payload = jwt.verify(token, JWT_SECRET) as AuthPayload;
-			return { authenticated: true, user: payload };
+			const rawPayload = jwt.verify(token, JWT_SECRET);
+			const parsedPayload = JWTAuthPayload.safeParse(rawPayload);
+			if (!parsedPayload.success) {
+				return { authenticated: false, user: null };
+			}
+			const payload = parsedPayload.data;
+
+			const [dbUser] = await db
+				.select({
+					username: users.username,
+					role: users.role,
+					active: users.active,
+				})
+				.from(users)
+				.where(eq(users.username, payload.username))
+				.limit(1);
+
+			if (!dbUser || !dbUser.active) {
+				return { authenticated: false, user: null };
+			}
+
+			return {
+				authenticated: true,
+				user: {
+					username: dbUser.username,
+					role: dbUser.role,
+				} satisfies AuthPayload,
+			};
 		} catch {
 			return { authenticated: false, user: null };
 		}
@@ -176,9 +206,24 @@ export const publicSignOut = createServerFn({ method: "POST" }).handler(
 	},
 );
 
+export async function requireOfficeUser() {
+	const authStatus = await verifyAuth();
+	if (
+		!authStatus.authenticated ||
+		(authStatus.user.role !== "admin" &&
+			authStatus.user.role !== "operator")
+	) {
+		throw redirect({
+			to: "/office",
+		});
+	}
+
+	return authStatus.user;
+}
+
 export async function requireAdmin() {
 	const authStatus = await verifyAuth();
-	if (!authStatus.authenticated || !authStatus.user.admin) {
+	if (!authStatus.authenticated || authStatus.user.role !== "admin") {
 		throw redirect({
 			to: "/office",
 		});
@@ -207,23 +252,19 @@ export const requestPasswordReset = createServerFn({ method: "POST" })
 	.handler(async ({ data }) => {
 		const { email } = safeParseAndThrow(data, RequestResetInput);
 
-		// 1. Find user
 		const [user] = await db
 			.select()
 			.from(users)
-			.where(eq(users.username, email))
+			.where(and(eq(users.username, email), eq(users.role, "public")))
 			.limit(1);
 
 		if (!user) {
-			// Don't reveal if user exists or not for security
 			return { success: true };
 		}
 
-		// 2. Generate token
 		const token = crypto.randomBytes(32).toString("hex");
-		const expires = new Date(Date.now() + 3600000); // 1 hour from now
+		const expires = new Date(Date.now() + 3600000);
 
-		// 3. Store token in DB
 		await db
 			.update(users)
 			.set({
@@ -232,7 +273,6 @@ export const requestPasswordReset = createServerFn({ method: "POST" })
 			})
 			.where(eq(users.id, user.id));
 
-		// 4. Send email
 		const resetUrl = `${process.env.APP_URL}/reset-password?token=${token}`;
 
 		try {
@@ -243,7 +283,6 @@ export const requestPasswordReset = createServerFn({ method: "POST" })
 			});
 		} catch (error) {
 			console.error("Failed to send reset email:", error);
-			// Optional: you might want to handle this differently
 		}
 
 		return { success: true };
@@ -259,11 +298,15 @@ export const resetPassword = createServerFn({ method: "POST" })
 	.handler(async ({ data }) => {
 		const { token, password } = safeParseAndThrow(data, ResetPasswordInput);
 
-		// 1. Find user with valid token
 		const [user] = await db
 			.select()
 			.from(users)
-			.where(eq(users.resetPasswordToken, token))
+			.where(
+				and(
+					eq(users.resetPasswordToken, token),
+					eq(users.role, "public"),
+				),
+			)
 			.limit(1);
 
 		if (
@@ -274,10 +317,8 @@ export const resetPassword = createServerFn({ method: "POST" })
 			throw new Error("Invalid or expired reset token");
 		}
 
-		// 2. Hash new password
 		const hashedPassword = await hash(password, 10);
 
-		// 3. Update password and clear token
 		await db
 			.update(users)
 			.set({
