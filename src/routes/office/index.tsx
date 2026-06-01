@@ -12,7 +12,11 @@ export const Route = createFileRoute("/office/")({
 
 function OfficePage() {
 	const loaderData = Route.useLoaderData();
-	if (!loaderData.authenticated || !loaderData.user.admin) {
+	if (
+		!loaderData.authenticated ||
+		(loaderData.user.role !== "admin" &&
+			loaderData.user.role !== "operator")
+	) {
 		return <Login />;
 	}
 

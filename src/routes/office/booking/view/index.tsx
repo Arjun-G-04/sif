@@ -5,7 +5,7 @@ import { Header } from "@/components/office/header";
 import { Button } from "@/components/ui/button";
 import { DataTable, type Column } from "@/components/general/DataTable";
 
-import { requireAdmin } from "@/lib/auth";
+import { requireOfficeUser } from "@/lib/auth";
 import { getBookings } from "@/services/booking";
 
 export const bookingsQueryOptions = queryOptions({
@@ -16,7 +16,7 @@ export const bookingsQueryOptions = queryOptions({
 export const Route = createFileRoute("/office/booking/view/")({
 	component: BookingViewPage,
 	loader: async ({ context }) => {
-		const user = await requireAdmin();
+		const user = await requireOfficeUser();
 		await context.queryClient.ensureQueryData(bookingsQueryOptions);
 		return user;
 	},
@@ -144,6 +144,8 @@ function BookingViewPage() {
 		},
 	];
 
+	const isOperator = user.role === "operator";
+
 	return (
 		<div className="min-h-screen flex flex-col bg-slate-50/50">
 			<Header user={user} backTo="/office" />
@@ -151,10 +153,14 @@ function BookingViewPage() {
 				<div className="w-full space-y-6">
 					<div>
 						<h2 className="text-2xl font-bold tracking-tight text-slate-900">
-							All Booking Requests
+							{isOperator
+								? "Assigned Booking Requests"
+								: "All Booking Requests"}
 						</h2>
 						<p className="text-slate-500">
-							Manage and view all equipment booking requests.
+							{isOperator
+								? "Manage bookings for your assigned equipments."
+								: "Manage and view all equipment booking requests."}
 						</p>
 					</div>
 

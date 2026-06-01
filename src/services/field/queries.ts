@@ -139,7 +139,7 @@ export const getFields = createServerFn({ method: "GET" })
 
 		return await fetchFieldsFromDb(
 			parsedData.entityType,
-			auth.user?.admin ?? false,
+			auth.user?.role === "admin",
 			parsedData.entityId,
 			parsedData.stage,
 		);

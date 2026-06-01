@@ -19,6 +19,7 @@ import { Route as BookIndexRouteImport } from './routes/book/index'
 import { Route as OfficeAnalyticsRouteImport } from './routes/office/analytics'
 import { Route as BookingsBookingIdRouteImport } from './routes/bookings/$bookingId'
 import { Route as BookEqIdRouteImport } from './routes/book/$eqId'
+import { Route as OfficeOperatorsIndexRouteImport } from './routes/office/operators/index'
 import { Route as OfficeConfigurationIndexRouteImport } from './routes/office/configuration/index'
 import { Route as ApiFileIndexRouteImport } from './routes/api/file/index'
 import { Route as OfficeRegistrationViewIndexRouteImport } from './routes/office/registration/view/index'
@@ -77,6 +78,11 @@ const BookingsBookingIdRoute = BookingsBookingIdRouteImport.update({
 const BookEqIdRoute = BookEqIdRouteImport.update({
   id: '/book/$eqId',
   path: '/book/$eqId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OfficeOperatorsIndexRoute = OfficeOperatorsIndexRouteImport.update({
+  id: '/office/operators/',
+  path: '/office/operators/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OfficeConfigurationIndexRoute =
@@ -144,6 +150,7 @@ export interface FileRoutesByFullPath {
   '/registration': typeof RegistrationIndexRoute
   '/api/file': typeof ApiFileIndexRoute
   '/office/configuration': typeof OfficeConfigurationIndexRoute
+  '/office/operators': typeof OfficeOperatorsIndexRoute
   '/office/booking/view/$bookingId': typeof OfficeBookingViewBookingIdRoute
   '/office/equipment/edit/$eqId': typeof OfficeEquipmentEditEqIdRoute
   '/office/registration/view/$regId': typeof OfficeRegistrationViewRegIdRoute
@@ -165,6 +172,7 @@ export interface FileRoutesByTo {
   '/registration': typeof RegistrationIndexRoute
   '/api/file': typeof ApiFileIndexRoute
   '/office/configuration': typeof OfficeConfigurationIndexRoute
+  '/office/operators': typeof OfficeOperatorsIndexRoute
   '/office/booking/view/$bookingId': typeof OfficeBookingViewBookingIdRoute
   '/office/equipment/edit/$eqId': typeof OfficeEquipmentEditEqIdRoute
   '/office/registration/view/$regId': typeof OfficeRegistrationViewRegIdRoute
@@ -187,6 +195,7 @@ export interface FileRoutesById {
   '/registration/': typeof RegistrationIndexRoute
   '/api/file/': typeof ApiFileIndexRoute
   '/office/configuration/': typeof OfficeConfigurationIndexRoute
+  '/office/operators/': typeof OfficeOperatorsIndexRoute
   '/office/booking/view/$bookingId': typeof OfficeBookingViewBookingIdRoute
   '/office/equipment/edit/$eqId': typeof OfficeEquipmentEditEqIdRoute
   '/office/registration/view/$regId': typeof OfficeRegistrationViewRegIdRoute
@@ -210,6 +219,7 @@ export interface FileRouteTypes {
     | '/registration'
     | '/api/file'
     | '/office/configuration'
+    | '/office/operators'
     | '/office/booking/view/$bookingId'
     | '/office/equipment/edit/$eqId'
     | '/office/registration/view/$regId'
@@ -231,6 +241,7 @@ export interface FileRouteTypes {
     | '/registration'
     | '/api/file'
     | '/office/configuration'
+    | '/office/operators'
     | '/office/booking/view/$bookingId'
     | '/office/equipment/edit/$eqId'
     | '/office/registration/view/$regId'
@@ -252,6 +263,7 @@ export interface FileRouteTypes {
     | '/registration/'
     | '/api/file/'
     | '/office/configuration/'
+    | '/office/operators/'
     | '/office/booking/view/$bookingId'
     | '/office/equipment/edit/$eqId'
     | '/office/registration/view/$regId'
@@ -274,6 +286,7 @@ export interface RootRouteChildren {
   RegistrationIndexRoute: typeof RegistrationIndexRoute
   ApiFileIndexRoute: typeof ApiFileIndexRoute
   OfficeConfigurationIndexRoute: typeof OfficeConfigurationIndexRoute
+  OfficeOperatorsIndexRoute: typeof OfficeOperatorsIndexRoute
   OfficeBookingViewBookingIdRoute: typeof OfficeBookingViewBookingIdRoute
   OfficeEquipmentEditEqIdRoute: typeof OfficeEquipmentEditEqIdRoute
   OfficeRegistrationViewRegIdRoute: typeof OfficeRegistrationViewRegIdRoute
@@ -355,6 +368,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BookEqIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/office/operators/': {
+      id: '/office/operators/'
+      path: '/office/operators'
+      fullPath: '/office/operators'
+      preLoaderRoute: typeof OfficeOperatorsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/office/configuration/': {
       id: '/office/configuration/'
       path: '/office/configuration'
@@ -434,6 +454,7 @@ const rootRouteChildren: RootRouteChildren = {
   RegistrationIndexRoute: RegistrationIndexRoute,
   ApiFileIndexRoute: ApiFileIndexRoute,
   OfficeConfigurationIndexRoute: OfficeConfigurationIndexRoute,
+  OfficeOperatorsIndexRoute: OfficeOperatorsIndexRoute,
   OfficeBookingViewBookingIdRoute: OfficeBookingViewBookingIdRoute,
   OfficeEquipmentEditEqIdRoute: OfficeEquipmentEditEqIdRoute,
   OfficeRegistrationViewRegIdRoute: OfficeRegistrationViewRegIdRoute,

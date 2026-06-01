@@ -13,7 +13,11 @@ export const Route = createFileRoute("/")({
 function HomePage() {
 	const loaderData = Route.useLoaderData();
 
-	if (loaderData.authenticated && loaderData.user) {
+	if (
+		loaderData.authenticated &&
+		loaderData.user &&
+		loaderData.user.role === "public"
+	) {
 		return <Home user={loaderData.user} />;
 	}
 	return (

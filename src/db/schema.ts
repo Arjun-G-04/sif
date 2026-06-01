@@ -6,9 +6,10 @@ import {
 	serial,
 	text,
 	timestamp,
+	unique,
 } from "drizzle-orm/pg-core";
 
-export const userRole = pgEnum("user_role", ["public", "admin"]);
+export const userRole = pgEnum("user_role", ["public", "admin", "operator"]);
 export const bookingStatus = pgEnum("booking_status", [
 	"pending",
 	"payment",
@@ -24,12 +25,32 @@ export const users = pgTable("users", {
 	username: text().notNull().unique(),
 	password: text().notNull(),
 	role: userRole().notNull().default("public"),
+	active: boolean().notNull().default(true),
 	registrationId: integer("registration_id").references(
 		() => registrations.id,
 	),
 	resetPasswordToken: text("reset_password_token"),
 	resetPasswordExpires: timestamp("reset_password_expires"),
 });
+
+export const operatorEquipments = pgTable(
+	"operator_equipments",
+	{
+		id: serial().primaryKey(),
+		operatorId: integer("operator_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		equipmentId: integer("equipment_id")
+			.notNull()
+			.references(() => equipments.id, { onDelete: "cascade" }),
+	},
+	(table) => [
+		unique("operator_equipments_operator_equipment_unique").on(
+			table.operatorId,
+			table.equipmentId,
+		),
+	],
+);
 
 export const registrations = pgTable("registrations", {
 	id: serial().primaryKey(),

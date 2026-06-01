@@ -143,16 +143,6 @@ export function Login() {
 								</Alert>
 							)}
 
-							{/* Forgot Password */}
-							<div className="flex justify-end text-sm">
-								<a
-									href="/office"
-									className="text-red-600 hover:text-red-500 transition-colors"
-								>
-									Forgot password?
-								</a>
-							</div>
-
 							{/* Submit Button */}
 							<Button
 								type="submit"

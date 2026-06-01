@@ -1,18 +1,28 @@
-import { Separator } from "@/components/ui/separator";
-import {
-	Card,
-	CardHeader,
-	CardTitle,
-	CardDescription,
-	CardContent,
-} from "@/components/ui/card";
+import type { AuthPayload } from "@/lib/auth";
+import { Calendar, Settings, UserCog, Wrench } from "lucide-react";
+import type { ComponentType } from "react";
 import { UserIcon } from "@/components/svgs";
 import { Action } from "../general/action";
-import type { AuthPayload } from "@/lib/auth";
 import { Header } from "./header";
-import { Calendar, Settings, Wrench } from "lucide-react";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 
-const DASHBOARD_ITEMS = [
+type DashboardItem = {
+	title: string;
+	description: string;
+	icon: ComponentType<{ className?: string }>;
+	iconColor: string;
+	iconBg: string;
+	actions: Array<{ to: string; label: string }>;
+};
+
+const ADMIN_DASHBOARD_ITEMS: DashboardItem[] = [
 	{
 		title: "Registrations",
 		description: "Manage registrations",
@@ -54,6 +64,19 @@ const DASHBOARD_ITEMS = [
 		],
 	},
 	{
+		title: "Operators",
+		description: "Manage operator accounts and assignments",
+		icon: UserCog,
+		iconColor: "text-violet-600",
+		iconBg: "bg-violet-50",
+		actions: [
+			{
+				to: "/office/operators",
+				label: "Manage operators",
+			},
+		],
+	},
+	{
 		title: "Analytics",
 		description: "View equipment and booking statistics",
 		icon: Calendar,
@@ -81,12 +104,32 @@ const DASHBOARD_ITEMS = [
 	},
 ];
 
+const OPERATOR_DASHBOARD_ITEMS: DashboardItem[] = [
+	{
+		title: "Bookings",
+		description: "View and manage assigned equipment bookings",
+		icon: Calendar,
+		iconColor: "text-green-600",
+		iconBg: "bg-green-50",
+		actions: [
+			{
+				to: "/office/booking/view",
+				label: "View bookings",
+			},
+		],
+	},
+];
+
 export function Home({ user }: { user: AuthPayload }) {
+	const dashboardItems =
+		user.role === "admin"
+			? ADMIN_DASHBOARD_ITEMS
+			: OPERATOR_DASHBOARD_ITEMS;
+
 	return (
 		<div className="min-h-screen flex flex-col bg-slate-50/50">
 			<Header user={user} />
 
-			{/* Main Content */}
 			<main className="flex-1 p-4 md:p-6 lg:p-8">
 				<div className="w-full space-y-8">
 					<div className="space-y-2">
@@ -100,9 +143,8 @@ export function Home({ user }: { user: AuthPayload }) {
 
 					<Separator className="bg-slate-200" />
 
-					{/* Dashboard items */}
 					<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-						{DASHBOARD_ITEMS.map((item) => (
+						{dashboardItems.map((item) => (
 							<Card
 								key={item.title}
 								className="shadow-sm border-slate-200"

@@ -1,11 +1,80 @@
 import { db } from "@/db";
-import { bookings, equipments, fieldResponses, users } from "@/db/schema";
-import { requireAdmin, requireUser } from "@/lib/auth";
+import {
+	bookings,
+	equipments,
+	fieldResponses,
+	operatorEquipments,
+	users,
+} from "@/db/schema";
+import { requireOfficeUser, requireUser } from "@/lib/auth";
 import { safeParseAndThrow } from "@/lib/utils";
 import { createServerFn } from "@tanstack/react-start";
 import { and, eq } from "drizzle-orm";
 import * as z from "zod";
 import { getFieldResponses, parseFieldResponses } from "./field";
+
+async function getOfficeActorContext() {
+	const authUser = await requireOfficeUser();
+	const [dbUser] = await db
+		.select({ id: users.id })
+		.from(users)
+		.where(eq(users.username, authUser.username))
+		.limit(1);
+
+	if (!dbUser) {
+		throw new Error("User not found");
+	}
+
+	return {
+		authUser,
+		dbUserId: dbUser.id,
+	};
+}
+
+async function ensureBookingAccess(bookingId: number) {
+	const actor = await getOfficeActorContext();
+
+	if (actor.authUser.role === "admin") {
+		const [booking] = await db
+			.select({
+				id: bookings.id,
+				equipmentId: bookings.equipmentId,
+				status: bookings.status,
+			})
+			.from(bookings)
+			.where(eq(bookings.id, bookingId))
+			.limit(1);
+
+		if (!booking) {
+			throw new Error("Booking not found");
+		}
+
+		return { ...actor, booking };
+	}
+
+	const [booking] = await db
+		.select({
+			id: bookings.id,
+			equipmentId: bookings.equipmentId,
+			status: bookings.status,
+		})
+		.from(bookings)
+		.innerJoin(
+			operatorEquipments,
+			and(
+				eq(operatorEquipments.equipmentId, bookings.equipmentId),
+				eq(operatorEquipments.operatorId, actor.dbUserId),
+			),
+		)
+		.where(eq(bookings.id, bookingId))
+		.limit(1);
+
+	if (!booking) {
+		throw new Error("Booking not found");
+	}
+
+	return { ...actor, booking };
+}
 
 export const submitBooking = createServerFn({ method: "POST" })
 	.inputValidator((data: unknown) => data as FormData)
@@ -45,7 +114,6 @@ export const submitBooking = createServerFn({ method: "POST" })
 
 		const userId = dbUser.id;
 
-		// Parse form data using the shared helper
 		const fieldEntries = await parseFieldResponses(
 			formData,
 			"equipment",
@@ -54,7 +122,6 @@ export const submitBooking = createServerFn({ method: "POST" })
 			["equipmentId"],
 		);
 
-		// Create booking and insert responses in a transaction
 		await db.transaction(async (tx) => {
 			const [booking] = await tx
 				.insert(bookings)
@@ -86,7 +153,24 @@ export const submitBooking = createServerFn({ method: "POST" })
 
 export const getBookings = createServerFn({ method: "GET" }).handler(
 	async () => {
-		await requireAdmin();
+		const actor = await getOfficeActorContext();
+
+		if (actor.authUser.role === "admin") {
+			return await db
+				.select({
+					id: bookings.id,
+					userId: bookings.userId,
+					equipmentId: bookings.equipmentId,
+					createdAt: bookings.createdAt,
+					status: bookings.status,
+					userEmail: users.username,
+					equipmentName: equipments.name,
+				})
+				.from(bookings)
+				.leftJoin(users, eq(bookings.userId, users.id))
+				.leftJoin(equipments, eq(bookings.equipmentId, equipments.id));
+		}
+
 		return await db
 			.select({
 				id: bookings.id,
@@ -98,6 +182,13 @@ export const getBookings = createServerFn({ method: "GET" }).handler(
 				equipmentName: equipments.name,
 			})
 			.from(bookings)
+			.innerJoin(
+				operatorEquipments,
+				and(
+					eq(operatorEquipments.equipmentId, bookings.equipmentId),
+					eq(operatorEquipments.operatorId, actor.dbUserId),
+				),
+			)
 			.leftJoin(users, eq(bookings.userId, users.id))
 			.leftJoin(equipments, eq(bookings.equipmentId, equipments.id));
 	},
@@ -110,8 +201,8 @@ const GetBookingInput = z.object({
 export const getBooking = createServerFn({ method: "GET" })
 	.inputValidator(GetBookingInput)
 	.handler(async ({ data }) => {
-		await requireAdmin();
 		const { bookingId } = safeParseAndThrow(data, GetBookingInput);
+		const actor = await ensureBookingAccess(bookingId);
 
 		const [booking] = await db
 			.select({
@@ -130,7 +221,7 @@ export const getBooking = createServerFn({ method: "GET" })
 			.from(bookings)
 			.leftJoin(users, eq(bookings.userId, users.id))
 			.leftJoin(equipments, eq(bookings.equipmentId, equipments.id))
-			.where(eq(bookings.id, bookingId))
+			.where(eq(bookings.id, actor.booking.id))
 			.limit(1);
 
 		if (!booking) {
@@ -146,99 +237,114 @@ export const getBooking = createServerFn({ method: "GET" })
 		return { ...booking, responses };
 	});
 
-export const updateBookingFields = createServerFn({ method: "POST" })
-	.inputValidator(
+const UpdateBookingFieldsInput = z.object({
+	bookingId: z.number(),
+	responses: z.array(
 		z.object({
-			responses: z.array(
-				z.object({
-					responseId: z.number(),
-					adminValue: z.string().nullable(),
-				}),
-			),
+			responseId: z.number(),
+			adminValue: z.string().nullable(),
 		}),
-	)
+	),
+});
+
+export const updateBookingFields = createServerFn({ method: "POST" })
+	.inputValidator(UpdateBookingFieldsInput)
 	.handler(async ({ data }) => {
-		await requireAdmin();
+		const parsed = safeParseAndThrow(data, UpdateBookingFieldsInput);
+		const access = await ensureBookingAccess(parsed.bookingId);
 		await db.transaction(async (tx) => {
-			for (const resp of data.responses) {
+			for (const resp of parsed.responses) {
 				await tx
 					.update(fieldResponses)
 					.set({ adminValue: resp.adminValue })
-					.where(eq(fieldResponses.id, resp.responseId));
+					.where(
+						and(
+							eq(fieldResponses.id, resp.responseId),
+							eq(fieldResponses.bookingId, access.booking.id),
+						),
+					);
 			}
 		});
 		return { success: true };
 	});
 
+const AcceptBookingInput = z.object({
+	bookingId: z.number(),
+	price: z.number(),
+	gst: z.number(),
+	remarks: z.string().optional(),
+});
+
 export const acceptBooking = createServerFn({ method: "POST" })
-	.inputValidator(
-		z.object({
-			bookingId: z.number(),
-			price: z.number(),
-			gst: z.number(),
-			remarks: z.string().optional(),
-		}),
-	)
+	.inputValidator(AcceptBookingInput)
 	.handler(async ({ data }) => {
-		await requireAdmin();
+		const parsed = safeParseAndThrow(data, AcceptBookingInput);
+		const access = await ensureBookingAccess(parsed.bookingId);
 		await db
 			.update(bookings)
 			.set({
 				status: "payment",
-				price: data.price,
-				gst: data.gst,
-				remarks: data.remarks,
+				price: parsed.price,
+				gst: parsed.gst,
+				remarks: parsed.remarks,
 				rejectionReason: null,
 			})
-			.where(eq(bookings.id, data.bookingId));
+			.where(eq(bookings.id, access.booking.id));
 		return { success: true };
 	});
 
-export const rejectBooking = createServerFn({ method: "POST" })
-	.inputValidator(z.object({ bookingId: z.number(), reason: z.string() }))
-	.handler(async ({ data }) => {
-		await requireAdmin();
-		const [booking] = await db
-			.select({ status: bookings.status })
-			.from(bookings)
-			.where(eq(bookings.id, data.bookingId))
-			.limit(1);
+const RejectBookingInput = z.object({
+	bookingId: z.number(),
+	reason: z.string(),
+});
 
-		if (!booking) {
-			throw new Error("Booking not found");
-		}
+export const rejectBooking = createServerFn({ method: "POST" })
+	.inputValidator(RejectBookingInput)
+	.handler(async ({ data }) => {
+		const parsed = safeParseAndThrow(data, RejectBookingInput);
+		const access = await ensureBookingAccess(parsed.bookingId);
 
 		const status =
-			booking.status === "payment_verification"
+			access.booking.status === "payment_verification"
 				? "payment_rejected"
 				: "rejected";
 
 		await db
 			.update(bookings)
-			.set({ status, rejectionReason: data.reason })
-			.where(eq(bookings.id, data.bookingId));
+			.set({ status, rejectionReason: parsed.reason })
+			.where(eq(bookings.id, access.booking.id));
 		return { success: true };
 	});
 
+const VerifyBookingPaymentInput = z.object({
+	bookingId: z.number(),
+});
+
 export const verifyBookingPayment = createServerFn({ method: "POST" })
-	.inputValidator(z.object({ bookingId: z.number() }))
+	.inputValidator(VerifyBookingPaymentInput)
 	.handler(async ({ data }) => {
-		await requireAdmin();
+		const parsed = safeParseAndThrow(data, VerifyBookingPaymentInput);
+		const access = await ensureBookingAccess(parsed.bookingId);
 		await db
 			.update(bookings)
 			.set({ status: "processing" })
-			.where(eq(bookings.id, data.bookingId));
+			.where(eq(bookings.id, access.booking.id));
 		return { success: true };
 	});
 
+const CompleteBookingInput = z.object({
+	bookingId: z.number(),
+});
+
 export const completeBooking = createServerFn({ method: "POST" })
-	.inputValidator(z.object({ bookingId: z.number() }))
+	.inputValidator(CompleteBookingInput)
 	.handler(async ({ data }) => {
-		await requireAdmin();
+		const parsed = safeParseAndThrow(data, CompleteBookingInput);
+		const access = await ensureBookingAccess(parsed.bookingId);
 		await db
 			.update(bookings)
 			.set({ status: "completed" })
-			.where(eq(bookings.id, data.bookingId));
+			.where(eq(bookings.id, access.booking.id));
 		return { success: true };
 	});
 
@@ -344,7 +450,6 @@ export const submitBookingPaymentInfo = createServerFn({ method: "POST" })
 		);
 
 		if (fieldEntries.length > 0) {
-			// Check if any of these fields already have responses for this booking
 			const existingResponses = await db
 				.select({ fieldId: fieldResponses.fieldId })
 				.from(fieldResponses)
@@ -382,7 +487,6 @@ export const submitBookingPaymentInfo = createServerFn({ method: "POST" })
 				);
 			}
 
-			// Update booking status to payment_verification
 			await db
 				.update(bookings)
 				.set({ status: "payment_verification" })
