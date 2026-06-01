@@ -143,7 +143,13 @@ function UserBookingsPage() {
 								},
 							})
 						}
-						emptyState="You haven't made any bookings yet."
+						emptyState={
+							<div className="py-12 text-center border-2 border-dashed rounded-xl bg-white border-slate-200">
+								<p className="text-slate-400 italic">
+									You haven't made any bookings yet.
+								</p>
+							</div>
+						}
 						className="rounded-xl"
 					/>
 				</div>

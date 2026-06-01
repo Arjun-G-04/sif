@@ -79,6 +79,9 @@ export const otpVerifications = pgTable("otp_verifications", {
 export const configurations = pgTable("configurations", {
 	id: serial().primaryKey(),
 	officeEmail: text(),
+	registrationCategoryFieldId: integer(
+		"registration_category_field_id",
+	).references(() => fields.id, { onDelete: "set null" }),
 });
 
 export const equipments = pgTable("equipments", {

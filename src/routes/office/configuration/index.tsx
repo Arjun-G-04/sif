@@ -14,6 +14,13 @@ import {
 	updateConfiguration,
 } from "@/services/configuration";
 import { getFields } from "@/services/field";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,6 +45,11 @@ const defaultEquipmentFieldsQueryOptions = queryOptions({
 	queryFn: () => getFields({ data: { entityType: "equipment" } }),
 });
 
+export const registrationFieldsQueryOptions = queryOptions({
+	queryKey: ["fields", "registration"],
+	queryFn: () => getFields({ data: { entityType: "registration" } }),
+});
+
 export const Route = createFileRoute("/office/configuration/")({
 	component: ConfigurationPage,
 	loader: async ({ context }) => {
@@ -47,6 +59,7 @@ export const Route = createFileRoute("/office/configuration/")({
 			context.queryClient.ensureQueryData(
 				defaultEquipmentFieldsQueryOptions,
 			),
+			context.queryClient.ensureQueryData(registrationFieldsQueryOptions),
 		]);
 		return user;
 	},
@@ -58,15 +71,29 @@ function ConfigurationPage() {
 	const defaultEquipmentFields = useSuspenseQuery(
 		defaultEquipmentFieldsQueryOptions,
 	);
+	const registrationFields = useSuspenseQuery(registrationFieldsQueryOptions);
 	const queryClient = useQueryClient();
 	const [officeEmail, setOfficeEmail] = useState(
 		configuration.data?.officeEmail || "",
 	);
+	const [registrationCategoryFieldId, setRegistrationCategoryFieldId] =
+		useState<string>(
+			configuration.data?.registrationCategoryFieldId?.toString() ||
+				"none",
+		);
 	const officeEmailId = useId();
+	const categoryFieldSelectId = useId();
 
 	useEffect(() => {
 		if (configuration.data?.officeEmail) {
 			setOfficeEmail(configuration.data.officeEmail);
+		}
+		if (configuration.data?.registrationCategoryFieldId) {
+			setRegistrationCategoryFieldId(
+				configuration.data.registrationCategoryFieldId.toString(),
+			);
+		} else {
+			setRegistrationCategoryFieldId("none");
 		}
 	}, [configuration.data]);
 
@@ -87,7 +114,24 @@ function ConfigurationPage() {
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
-		updateMutation.mutate({ data: { officeEmail } });
+		updateMutation.mutate({
+			data: {
+				officeEmail,
+			},
+		});
+	};
+
+	const handleRegistrationSubmit = (e: React.FormEvent) => {
+		e.preventDefault();
+		const fieldId =
+			registrationCategoryFieldId === "none"
+				? null
+				: Number(registrationCategoryFieldId);
+		updateMutation.mutate({
+			data: {
+				registrationCategoryFieldId: fieldId,
+			},
+		});
 	};
 
 	return (
@@ -145,6 +189,80 @@ function ConfigurationPage() {
 										{updateMutation.isPending
 											? "Updating..."
 											: "Save Changes"}
+									</Button>
+								</div>
+							</form>
+						</CardContent>
+					</Card>
+
+					<Card>
+						<CardHeader>
+							<CardTitle>Registration Settings</CardTitle>
+							<CardDescription>
+								Configure category field mappings for user
+								registrations.
+							</CardDescription>
+						</CardHeader>
+						<CardContent>
+							<form
+								onSubmit={handleRegistrationSubmit}
+								className="space-y-4"
+							>
+								<div className="space-y-2">
+									<Label htmlFor={categoryFieldSelectId}>
+										Registration Category Field (Must be
+										single-select)
+									</Label>
+									<Select
+										value={registrationCategoryFieldId}
+										onValueChange={
+											setRegistrationCategoryFieldId
+										}
+									>
+										<SelectTrigger
+											id={categoryFieldSelectId}
+											className="w-full"
+										>
+											<SelectValue placeholder="Select registration category field" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="none">
+												None (Disabled)
+											</SelectItem>
+											{registrationFields.data
+												?.filter(
+													(f) =>
+														f.type ===
+															"single_select" &&
+														f.active,
+												)
+												.map((field) => (
+													<SelectItem
+														key={field.id}
+														value={field.id.toString()}
+													>
+														{field.name}
+													</SelectItem>
+												))}
+										</SelectContent>
+									</Select>
+								</div>
+								<div className="flex justify-end pt-2">
+									<Button
+										type="submit"
+										disabled={
+											updateMutation.isPending ||
+											registrationCategoryFieldId ===
+												(configuration.data?.registrationCategoryFieldId?.toString() ||
+													"none")
+										}
+									>
+										{updateMutation.isPending && (
+											<Spinner className="mr-2" />
+										)}
+										{updateMutation.isPending
+											? "Updating..."
+											: "Save Settings"}
 									</Button>
 								</div>
 							</form>

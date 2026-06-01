@@ -172,6 +172,7 @@ export const getRegistration = createServerFn({ method: "GET" })
 
 const AcceptRegistrationInput = z.object({
 	regId: z.number(),
+	categoryValue: z.string().min(1, "Category value is required"),
 });
 
 export const acceptRegistration = createServerFn({ method: "POST" })
@@ -179,7 +180,16 @@ export const acceptRegistration = createServerFn({ method: "POST" })
 	.handler(async ({ data }) => {
 		await requireAdmin();
 
-		const { regId } = safeParseAndThrow(data, AcceptRegistrationInput);
+		const { regId, categoryValue } = safeParseAndThrow(
+			data,
+			AcceptRegistrationInput,
+		);
+
+		const config = await getConfigHelper();
+		if (!config || !config.registrationCategoryFieldId) {
+			throw new Error("Category field is not configured in settings");
+		}
+		const categoryFieldId = config.registrationCategoryFieldId;
 
 		const [reg] = await db
 			.select()
@@ -195,6 +205,32 @@ export const acceptRegistration = createServerFn({ method: "POST" })
 		}
 
 		await db.transaction(async (tx) => {
+			const [existingResponse] = await tx
+				.select({ id: fieldResponses.id })
+				.from(fieldResponses)
+				.where(
+					and(
+						eq(fieldResponses.entityType, "registration"),
+						eq(fieldResponses.entityId, reg.id),
+						eq(fieldResponses.fieldId, categoryFieldId),
+					),
+				)
+				.limit(1);
+
+			if (existingResponse) {
+				await tx
+					.update(fieldResponses)
+					.set({ value: categoryValue })
+					.where(eq(fieldResponses.id, existingResponse.id));
+			} else {
+				await tx.insert(fieldResponses).values({
+					entityType: "registration",
+					entityId: reg.id,
+					fieldId: categoryFieldId,
+					value: categoryValue,
+				});
+			}
+
 			await tx.insert(users).values({
 				username: reg.email,
 				password: reg.password,

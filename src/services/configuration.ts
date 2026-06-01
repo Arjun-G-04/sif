@@ -24,7 +24,8 @@ export const getConfiguration = createServerFn({ method: "GET" }).handler(
 );
 
 const UpdateConfigurationInput = z.object({
-	officeEmail: z.email("Invalid email address"),
+	officeEmail: z.email("Invalid email address").optional(),
+	registrationCategoryFieldId: z.number().nullable().optional(),
 });
 
 export const updateConfiguration = createServerFn({ method: "POST" })
@@ -40,11 +41,27 @@ export const updateConfiguration = createServerFn({ method: "POST" })
 			.where(eq(configurations.id, 1))
 			.limit(1);
 		if (!config) {
-			await db.insert(configurations).values({ id: 1, ...parsedData });
+			await db.insert(configurations).values({
+				id: 1,
+				officeEmail: parsedData.officeEmail ?? null,
+				registrationCategoryFieldId:
+					parsedData.registrationCategoryFieldId ?? null,
+			});
 		} else {
-			await db
-				.update(configurations)
-				.set(parsedData)
-				.where(eq(configurations.id, 1));
+			const updateData: Partial<typeof configurations.$inferInsert> = {};
+			if (parsedData.officeEmail !== undefined) {
+				updateData.officeEmail = parsedData.officeEmail;
+			}
+			if (parsedData.registrationCategoryFieldId !== undefined) {
+				updateData.registrationCategoryFieldId =
+					parsedData.registrationCategoryFieldId;
+			}
+
+			if (Object.keys(updateData).length > 0) {
+				await db
+					.update(configurations)
+					.set(updateData)
+					.where(eq(configurations.id, 1));
+			}
 		}
 	});

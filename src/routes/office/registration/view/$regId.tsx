@@ -4,9 +4,9 @@ import {
 	useQueryClient,
 	useSuspenseQuery,
 } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { Ban, Check, X } from "lucide-react";
-import { useId, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { AlertTriangle, Ban, Check, X } from "lucide-react";
+import { useId, useState, useEffect } from "react";
 import { toast } from "sonner";
 import { FieldResponsesDisplay } from "@/components/general/fieldResponses";
 import { Header } from "@/components/office/header";
@@ -21,12 +21,23 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { requireAdmin } from "@/lib/auth";
 import {
 	acceptRegistration,
 	getRegistration,
 	rejectRegistration,
 } from "@/services/registration";
+import {
+	configurationQueryOptions,
+	registrationFieldsQueryOptions,
+} from "../../configuration/index";
 
 export const registrationQueryOptions = (regId: number) =>
 	queryOptions({
@@ -42,9 +53,13 @@ export const Route = createFileRoute("/office/registration/view/$regId")({
 		if (Number.isNaN(regId)) {
 			throw new Error("Invalid registration ID");
 		}
-		await context.queryClient.ensureQueryData(
-			registrationQueryOptions(regId),
-		);
+		await Promise.all([
+			context.queryClient.ensureQueryData(
+				registrationQueryOptions(regId),
+			),
+			context.queryClient.ensureQueryData(configurationQueryOptions),
+			context.queryClient.ensureQueryData(registrationFieldsQueryOptions),
+		]);
 		return user;
 	},
 });
@@ -55,14 +70,45 @@ function RegistrationDetailPage() {
 	const regId = Number(regIdStr);
 	const registration = useSuspenseQuery(registrationQueryOptions(regId));
 	const reg = registration.data;
+	const configuration = useSuspenseQuery(configurationQueryOptions);
+	const config = configuration.data;
+	const registrationFields = useSuspenseQuery(registrationFieldsQueryOptions);
+
+	const categoryFieldId = config?.registrationCategoryFieldId;
+	const isConfigured = !!categoryFieldId;
+	const categoryField = isConfigured
+		? registrationFields.data?.find((f) => f.id === categoryFieldId)
+		: null;
+
+	const existingCategoryResponse = reg.responses?.find(
+		(r) => r.fieldId === categoryFieldId,
+	);
+	const initialCategoryValue = existingCategoryResponse?.value || "";
+
 	const queryClient = useQueryClient();
 	const reasonId = useId();
+	const acceptCategorySelectId = useId();
 	const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
 	const [isAcceptDialogOpen, setIsAcceptDialogOpen] = useState(false);
 	const [rejectionReason, setRejectionReason] = useState("");
+	const [categoryValue, setCategoryValue] = useState("");
+
+	useEffect(() => {
+		setCategoryValue(initialCategoryValue);
+	}, [initialCategoryValue]);
+
+	const handleAcceptOpenChange = (open: boolean) => {
+		setIsAcceptDialogOpen(open);
+		if (open) {
+			setCategoryValue(initialCategoryValue);
+		}
+	};
 
 	const acceptMutation = useMutation({
-		mutationFn: () => acceptRegistration({ data: { regId } }),
+		mutationFn: () =>
+			acceptRegistration({
+				data: { regId, categoryValue },
+			}),
 		onSuccess: () => {
 			toast.success("Registration accepted successfully");
 			queryClient.invalidateQueries({
@@ -114,6 +160,22 @@ function RegistrationDetailPage() {
 			<Header user={user} backTo="/office/registration/view" />
 			<main className="flex-1 p-4 md:p-6 lg:p-8">
 				<div className="w-full space-y-6">
+					{!isConfigured && (
+						<div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-800 shadow-sm">
+							<AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
+							<div className="text-sm font-medium">
+								Category field is not configured in settings.
+								Please set a category field in the{" "}
+								<Link
+									to="/office/configuration"
+									className="underline font-semibold hover:text-amber-900"
+								>
+									System Configuration
+								</Link>{" "}
+								before accepting registrations.
+							</div>
+						</div>
+					)}
 					<div className="flex items-center justify-between">
 						<div>
 							<h2 className="text-2xl font-bold tracking-tight text-slate-900">
@@ -126,9 +188,12 @@ function RegistrationDetailPage() {
 								<div className="mt-4 flex gap-2">
 									<Button
 										onClick={() =>
-											setIsAcceptDialogOpen(true)
+											handleAcceptOpenChange(true)
 										}
-										disabled={acceptMutation.isPending}
+										disabled={
+											acceptMutation.isPending ||
+											!isConfigured
+										}
 										className="bg-green-600 hover:bg-green-700"
 									>
 										{acceptMutation.isPending ? (
@@ -214,7 +279,7 @@ function RegistrationDetailPage() {
 
 			<Dialog
 				open={isAcceptDialogOpen}
-				onOpenChange={setIsAcceptDialogOpen}
+				onOpenChange={handleAcceptOpenChange}
 			>
 				<DialogContent>
 					<DialogHeader>
@@ -225,6 +290,35 @@ function RegistrationDetailPage() {
 							registrant.
 						</DialogDescription>
 					</DialogHeader>
+					{categoryField?.type === "single_select" &&
+						categoryField.options && (
+							<div className="space-y-2 pb-4">
+								<Label htmlFor={acceptCategorySelectId}>
+									{categoryField.name} (Category Field)
+								</Label>
+								<Select
+									value={categoryValue}
+									onValueChange={setCategoryValue}
+								>
+									<SelectTrigger
+										id={acceptCategorySelectId}
+										className="w-full"
+									>
+										<SelectValue placeholder="Select Category..." />
+									</SelectTrigger>
+									<SelectContent>
+										{categoryField.options.map((opt) => (
+											<SelectItem
+												key={opt.id}
+												value={opt.value}
+											>
+												{opt.value}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							</div>
+						)}
 					<DialogFooter>
 						<Button
 							variant="outline"
@@ -235,7 +329,9 @@ function RegistrationDetailPage() {
 						<Button
 							className="bg-green-600 hover:bg-green-700"
 							onClick={() => acceptMutation.mutate()}
-							disabled={acceptMutation.isPending}
+							disabled={
+								acceptMutation.isPending || !categoryValue
+							}
 						>
 							{acceptMutation.isPending ? (
 								"Accepting..."
