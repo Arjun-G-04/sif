@@ -58,22 +58,10 @@ export const submitRegistration = createServerFn({ method: "POST" })
 			throw new Error("Email has not been verified with OTP");
 		}
 
-		// 3. Verify Phone OTP
-		const [phoneVerification] = await db
-			.select()
-			.from(otpVerifications)
-			.where(
-				and(
-					eq(otpVerifications.type, "phone"),
-					eq(otpVerifications.target, phone),
-					eq(otpVerifications.verified, true),
-				),
-			)
-			.orderBy(otpVerifications.createdAt)
-			.limit(1);
-
-		if (!phoneVerification) {
-			throw new Error("Phone number has not been verified with OTP");
+		// Validate phone number format (exactly 10 digits)
+		const phoneDigits = phone.replace(/\D/g, "");
+		if (phoneDigits.length !== 10) {
+			throw new Error("Phone number must be exactly 10 digits");
 		}
 
 		// Hash password
@@ -85,7 +73,7 @@ export const submitRegistration = createServerFn({ method: "POST" })
 			.values({
 				password: hashedPassword,
 				email,
-				phone,
+				phone: phoneDigits,
 			})
 			.returning({ id: registrations.id });
 

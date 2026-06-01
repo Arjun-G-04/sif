@@ -359,7 +359,7 @@ function RegistrationDetailPage() {
 							undone.
 						</DialogDescription>
 					</DialogHeader>
-					<div className="grid gap-4 py-4">
+					<div className="grid gap-4 pb-4">
 						<div className="grid gap-2">
 							<Label htmlFor={reasonId}>Rejection Reason</Label>
 							<Textarea

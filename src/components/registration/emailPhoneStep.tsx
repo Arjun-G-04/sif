@@ -28,13 +28,10 @@ export function EmailPhoneStep({ onComplete }: EmailPhoneStepProps) {
 	const [email, setEmail] = useState("");
 	const [phone, setPhone] = useState("");
 	const [emailOtp, setEmailOtp] = useState("");
-	const [phoneOtp, setPhoneOtp] = useState("");
 
 	// Verification status
 	const [emailVerified, setEmailVerified] = useState(false);
-	const [phoneVerified, setPhoneVerified] = useState(false);
 	const [emailOtpSent, setEmailOtpSent] = useState(false);
-	const [phoneOtpSent, setPhoneOtpSent] = useState(false);
 
 	// Turnstile
 	const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
@@ -59,21 +56,6 @@ export function EmailPhoneStep({ onComplete }: EmailPhoneStepProps) {
 		},
 	});
 
-	const sendPhoneMutation = useMutation({
-		mutationFn: sendOtp,
-		onSuccess: (data) => {
-			setPhoneOtpSent(true);
-			toast.success(data.message);
-			turnstileRef.current?.reset();
-			setTurnstileToken(null);
-		},
-		onError: (error) => {
-			toast.error(error.message);
-			turnstileRef.current?.reset();
-			setTurnstileToken(null);
-		},
-	});
-
 	const verifyEmailMutation = useMutation({
 		mutationFn: verifyOtp,
 		onSuccess: (data) => {
@@ -83,18 +65,6 @@ export function EmailPhoneStep({ onComplete }: EmailPhoneStepProps) {
 		onError: (error) => {
 			toast.error(error.message);
 			setEmailOtp("");
-		},
-	});
-
-	const verifyPhoneMutation = useMutation({
-		mutationFn: verifyOtp,
-		onSuccess: (data) => {
-			setPhoneVerified(true);
-			toast.success(data.message);
-		},
-		onError: (error) => {
-			toast.error(error.message);
-			setPhoneOtp("");
 		},
 	});
 
@@ -112,20 +82,6 @@ export function EmailPhoneStep({ onComplete }: EmailPhoneStepProps) {
 		});
 	};
 
-	const handleSendPhoneOtp = () => {
-		if (!turnstileToken) {
-			toast.error("Please complete the security challenge first");
-			return;
-		}
-		if (!phone) {
-			toast.error("Please enter your phone number");
-			return;
-		}
-		sendPhoneMutation.mutate({
-			data: { type: "phone", target: phone, turnstileToken },
-		});
-	};
-
 	const handleVerifyEmailOtp = () => {
 		if (emailOtp.length !== 6) {
 			toast.error("Please enter the complete 6-digit OTP");
@@ -136,21 +92,12 @@ export function EmailPhoneStep({ onComplete }: EmailPhoneStepProps) {
 		});
 	};
 
-	const handleVerifyPhoneOtp = () => {
-		if (phoneOtp.length !== 6) {
-			toast.error("Please enter the complete 6-digit OTP");
-			return;
-		}
-		verifyPhoneMutation.mutate({
-			data: { type: "phone", target: phone, otp: phoneOtp },
-		});
-	};
-
-	const canProceed = emailVerified && phoneVerified;
+	const isPhoneValid = phone.replace(/\D/g, "").length === 10;
+	const canProceed = emailVerified && isPhoneValid;
 
 	const handleContinue = () => {
 		if (canProceed) {
-			onComplete({ email, phone });
+			onComplete({ email, phone: phone.replace(/\D/g, "") });
 		}
 	};
 
@@ -249,96 +196,33 @@ export function EmailPhoneStep({ onComplete }: EmailPhoneStepProps) {
 				</FieldContent>
 			</Field>
 
-			{/* Phone Verification */}
+			{/* Phone Number */}
 			<Field>
-				<FieldLabel htmlFor="phone">
+				<FieldLabel htmlFor={phoneId}>
 					<div className="flex items-center gap-2">
 						<PhoneIcon className="w-4 h-4 text-slate-400" />
 						Phone Number
-						{phoneVerified && (
+						{isPhoneValid && (
 							<CheckCircle className="w-4 h-4 text-green-500" />
 						)}
 					</div>
 				</FieldLabel>
 				<FieldContent>
-					<div className="flex gap-2">
-						<Input
-							id={phoneId}
-							type="tel"
-							placeholder="Enter your phone number"
-							value={phone}
-							onChange={(e) => setPhone(e.target.value)}
-							disabled={
-								phoneVerified || sendPhoneMutation.isPending
-							}
-							className={
-								phoneVerified
-									? "border-green-500 bg-green-50"
-									: ""
-							}
-						/>
-						{!phoneVerified && !phoneOtpSent && (
-							<Button
-								type="button"
-								onClick={handleSendPhoneOtp}
-								disabled={
-									!phone ||
-									!turnstileToken ||
-									sendPhoneMutation.isPending
-								}
-								className="shrink-0"
-							>
-								{sendPhoneMutation.isPending ? (
-									<Spinner className="w-4 h-4" />
-								) : (
-									"Send OTP"
-								)}
-							</Button>
-						)}
-					</div>
-
-					{phoneOtpSent && !phoneVerified && (
-						<div className="mt-3 space-y-2">
-							<p className="text-sm text-slate-600">
-								Enter the 6-digit code sent to your phone:
-							</p>
-							<div className="flex items-center gap-3">
-								<InputOTP
-									maxLength={6}
-									value={phoneOtp}
-									onChange={setPhoneOtp}
-									disabled={verifyPhoneMutation.isPending}
-								>
-									<InputOTPGroup>
-										<InputOTPSlot index={0} />
-										<InputOTPSlot index={1} />
-										<InputOTPSlot index={2} />
-									</InputOTPGroup>
-									<InputOTPSeparator />
-									<InputOTPGroup>
-										<InputOTPSlot index={3} />
-										<InputOTPSlot index={4} />
-										<InputOTPSlot index={5} />
-									</InputOTPGroup>
-								</InputOTP>
-								<Button
-									type="button"
-									onClick={handleVerifyPhoneOtp}
-									disabled={
-										phoneOtp.length !== 6 ||
-										verifyPhoneMutation.isPending
-									}
-									size="sm"
-								>
-									{verifyPhoneMutation.isPending ? (
-										<Spinner className="w-4 h-4" />
-									) : (
-										"Verify"
-									)}
-								</Button>
-							</div>
-						</div>
-					)}
+					<Input
+						id={phoneId}
+						type="tel"
+						placeholder="Enter 10-digit phone number"
+						value={phone}
+						onChange={(e) => {
+							const val = e.target.value
+								.replace(/\D/g, "")
+								.slice(0, 10);
+							setPhone(val);
+						}}
+						className={
+							isPhoneValid ? "border-green-500 bg-green-50" : ""
+						}
+					/>
 				</FieldContent>
 			</Field>
 
