@@ -12,5 +12,7 @@ count.txt
 .output
 .vinxi
 todos.json
-
 media
+
+# Database backups
+backups/
