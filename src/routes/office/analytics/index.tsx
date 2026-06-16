@@ -32,7 +32,7 @@ import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { Separator } from "@/components/ui/separator";
 
-export const Route = createFileRoute("/office/analytics")({
+export const Route = createFileRoute("/office/analytics/")({
 	component: AnalyticsPage,
 	loader: async () => {
 		return await requireAdmin();
@@ -202,7 +202,9 @@ function AnalyticsPage() {
 											</SelectItem>
 											{fieldOptions.map((o) => (
 												<SelectItem
-													key={`${selectedFieldId}-${o.value}`}
+													key={
+														"${selectedFieldId}-${o.value}"
+													}
 													value={o.value}
 												>
 													{o.value}
@@ -290,7 +292,7 @@ function AnalyticsPage() {
 										/>
 										<Tooltip
 											formatter={(val: number) => [
-												`₹${val.toLocaleString()}`,
+												"₹${val.toLocaleString()}",
 												"Revenue",
 											]}
 											contentStyle={{
@@ -332,12 +334,12 @@ function AnalyticsPage() {
 											<XAxis dataKey="month" />
 											<YAxis
 												tickFormatter={(val) =>
-													`₹${val}`
+													"₹${val}"
 												}
 											/>
 											<Tooltip
 												formatter={(val: number) => [
-													`₹${val.toLocaleString()}`,
+													"₹${val.toLocaleString()}",
 													"Revenue",
 												]}
 												contentStyle={{
