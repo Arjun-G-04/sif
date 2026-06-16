@@ -1,6 +1,7 @@
 import {
 	boolean,
 	integer,
+	jsonb,
 	pgEnum,
 	pgTable,
 	serial,
@@ -31,6 +32,9 @@ export const users = pgTable("users", {
 	),
 	resetPasswordToken: text("reset_password_token"),
 	resetPasswordExpires: timestamp("reset_password_expires"),
+	istemId: text("istem_id"),
+	istemSyncedAt: timestamp("istem_synced_at"),
+	updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const operatorEquipments = pgTable(
@@ -82,6 +86,19 @@ export const configurations = pgTable("configurations", {
 	registrationCategoryFieldId: integer(
 		"registration_category_field_id",
 	).references(() => fields.id, { onDelete: "set null" }),
+	istemToken: text("istem_token"),
+	istemTokenExpiresAt: timestamp("istem_token_expires_at"),
+	// Maps I-STEM API user fields (e.g., 'user_first_name') to SIF local field IDs (as string), 'static', or 'default'
+	istemUserMapping:
+		jsonb("istem_user_mapping").$type<Record<string, string>>(),
+	// Maps I-STEM API equipment fields (e.g., 'equipment_make') to local field IDs, native columns (e.g. 'name', 'code'), 'static', or 'default'
+	istemEquipmentMapping: jsonb("istem_equipment_mapping").$type<
+		Record<string, string>
+	>(),
+	// Stores default text values for I-STEM fields mapped to 'static'. Keys are prefixed by entity type (e.g., 'user_user_salutation' or 'booking_1_service_type')
+	istemStaticDefaults: jsonb("istem_static_defaults").$type<
+		Record<string, string>
+	>(),
 });
 
 export const equipments = pgTable("equipments", {
@@ -89,6 +106,13 @@ export const equipments = pgTable("equipments", {
 	name: text().notNull(),
 	code: text().notNull().unique(),
 	active: boolean().notNull().default(true),
+	istemId: text("istem_id"),
+	istemSyncedAt: timestamp("istem_synced_at"),
+	updatedAt: timestamp("updated_at").defaultNow().notNull(),
+	// Maps I-STEM API booking fields (e.g., 'service_type') to local equipment-specific field IDs (as string), 'static', or 'default'
+	istemBookingMapping: jsonb("istem_booking_mapping").$type<
+		Record<string, string>
+	>(),
 });
 
 // Field/Form System
@@ -175,6 +199,9 @@ export const bookings = pgTable("bookings", {
 	remarks: text(),
 	rejectionReason: text("rejection_reason"),
 	createdAt: timestamp("created_at").defaultNow(),
+	istemId: text("istem_id"),
+	istemSyncedAt: timestamp("istem_synced_at"),
+	updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // Update fieldResponses to reference booking

@@ -65,7 +65,7 @@ const ADMIN_DASHBOARD_ITEMS: DashboardItem[] = [
 	},
 	{
 		title: "Operators",
-		description: "Manage operator accounts and assignments",
+		description: "Manage operator accounts",
 		icon: UserCog,
 		iconColor: "text-violet-600",
 		iconBg: "bg-violet-50",
@@ -78,7 +78,7 @@ const ADMIN_DASHBOARD_ITEMS: DashboardItem[] = [
 	},
 	{
 		title: "Analytics",
-		description: "View equipment and booking statistics",
+		description: "View statistics",
 		icon: Calendar,
 		iconColor: "text-indigo-600",
 		iconBg: "bg-indigo-50",
@@ -99,6 +99,19 @@ const ADMIN_DASHBOARD_ITEMS: DashboardItem[] = [
 			{
 				to: "/office/configuration",
 				label: "Update system configuration",
+			},
+		],
+	},
+	{
+		title: "I-STEM Sync",
+		description: "Sync with I-STEM",
+		icon: Settings,
+		iconColor: "text-teal-600",
+		iconBg: "bg-teal-50",
+		actions: [
+			{
+				to: "/office/sync",
+				label: "Open Sync Controls",
 			},
 		],
 	},

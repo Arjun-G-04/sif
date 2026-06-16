@@ -16,11 +16,12 @@ import { Route as RegistrationIndexRouteImport } from './routes/registration/ind
 import { Route as OfficeIndexRouteImport } from './routes/office/index'
 import { Route as BookingsIndexRouteImport } from './routes/bookings/index'
 import { Route as BookIndexRouteImport } from './routes/book/index'
-import { Route as OfficeAnalyticsRouteImport } from './routes/office/analytics'
 import { Route as BookingsBookingIdRouteImport } from './routes/bookings/$bookingId'
 import { Route as BookEqIdRouteImport } from './routes/book/$eqId'
+import { Route as OfficeSyncIndexRouteImport } from './routes/office/sync/index'
 import { Route as OfficeOperatorsIndexRouteImport } from './routes/office/operators/index'
 import { Route as OfficeConfigurationIndexRouteImport } from './routes/office/configuration/index'
+import { Route as OfficeAnalyticsIndexRouteImport } from './routes/office/analytics/index'
 import { Route as ApiFileIndexRouteImport } from './routes/api/file/index'
 import { Route as OfficeRegistrationViewIndexRouteImport } from './routes/office/registration/view/index'
 import { Route as OfficeRegistrationEditIndexRouteImport } from './routes/office/registration/edit/index'
@@ -65,11 +66,6 @@ const BookIndexRoute = BookIndexRouteImport.update({
   path: '/book/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const OfficeAnalyticsRoute = OfficeAnalyticsRouteImport.update({
-  id: '/office/analytics',
-  path: '/office/analytics',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const BookingsBookingIdRoute = BookingsBookingIdRouteImport.update({
   id: '/bookings/$bookingId',
   path: '/bookings/$bookingId',
@@ -78,6 +74,11 @@ const BookingsBookingIdRoute = BookingsBookingIdRouteImport.update({
 const BookEqIdRoute = BookEqIdRouteImport.update({
   id: '/book/$eqId',
   path: '/book/$eqId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OfficeSyncIndexRoute = OfficeSyncIndexRouteImport.update({
+  id: '/office/sync/',
+  path: '/office/sync/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OfficeOperatorsIndexRoute = OfficeOperatorsIndexRouteImport.update({
@@ -91,6 +92,11 @@ const OfficeConfigurationIndexRoute =
     path: '/office/configuration/',
     getParentRoute: () => rootRouteImport,
   } as any)
+const OfficeAnalyticsIndexRoute = OfficeAnalyticsIndexRouteImport.update({
+  id: '/office/analytics/',
+  path: '/office/analytics/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiFileIndexRoute = ApiFileIndexRouteImport.update({
   id: '/api/file/',
   path: '/api/file/',
@@ -143,14 +149,15 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/book/$eqId': typeof BookEqIdRoute
   '/bookings/$bookingId': typeof BookingsBookingIdRoute
-  '/office/analytics': typeof OfficeAnalyticsRoute
   '/book': typeof BookIndexRoute
   '/bookings': typeof BookingsIndexRoute
   '/office': typeof OfficeIndexRoute
   '/registration': typeof RegistrationIndexRoute
   '/api/file': typeof ApiFileIndexRoute
+  '/office/analytics': typeof OfficeAnalyticsIndexRoute
   '/office/configuration': typeof OfficeConfigurationIndexRoute
   '/office/operators': typeof OfficeOperatorsIndexRoute
+  '/office/sync': typeof OfficeSyncIndexRoute
   '/office/booking/view/$bookingId': typeof OfficeBookingViewBookingIdRoute
   '/office/equipment/edit/$eqId': typeof OfficeEquipmentEditEqIdRoute
   '/office/registration/view/$regId': typeof OfficeRegistrationViewRegIdRoute
@@ -165,14 +172,15 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/book/$eqId': typeof BookEqIdRoute
   '/bookings/$bookingId': typeof BookingsBookingIdRoute
-  '/office/analytics': typeof OfficeAnalyticsRoute
   '/book': typeof BookIndexRoute
   '/bookings': typeof BookingsIndexRoute
   '/office': typeof OfficeIndexRoute
   '/registration': typeof RegistrationIndexRoute
   '/api/file': typeof ApiFileIndexRoute
+  '/office/analytics': typeof OfficeAnalyticsIndexRoute
   '/office/configuration': typeof OfficeConfigurationIndexRoute
   '/office/operators': typeof OfficeOperatorsIndexRoute
+  '/office/sync': typeof OfficeSyncIndexRoute
   '/office/booking/view/$bookingId': typeof OfficeBookingViewBookingIdRoute
   '/office/equipment/edit/$eqId': typeof OfficeEquipmentEditEqIdRoute
   '/office/registration/view/$regId': typeof OfficeRegistrationViewRegIdRoute
@@ -188,14 +196,15 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/book/$eqId': typeof BookEqIdRoute
   '/bookings/$bookingId': typeof BookingsBookingIdRoute
-  '/office/analytics': typeof OfficeAnalyticsRoute
   '/book/': typeof BookIndexRoute
   '/bookings/': typeof BookingsIndexRoute
   '/office/': typeof OfficeIndexRoute
   '/registration/': typeof RegistrationIndexRoute
   '/api/file/': typeof ApiFileIndexRoute
+  '/office/analytics/': typeof OfficeAnalyticsIndexRoute
   '/office/configuration/': typeof OfficeConfigurationIndexRoute
   '/office/operators/': typeof OfficeOperatorsIndexRoute
+  '/office/sync/': typeof OfficeSyncIndexRoute
   '/office/booking/view/$bookingId': typeof OfficeBookingViewBookingIdRoute
   '/office/equipment/edit/$eqId': typeof OfficeEquipmentEditEqIdRoute
   '/office/registration/view/$regId': typeof OfficeRegistrationViewRegIdRoute
@@ -212,14 +221,15 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/book/$eqId'
     | '/bookings/$bookingId'
-    | '/office/analytics'
     | '/book'
     | '/bookings'
     | '/office'
     | '/registration'
     | '/api/file'
+    | '/office/analytics'
     | '/office/configuration'
     | '/office/operators'
+    | '/office/sync'
     | '/office/booking/view/$bookingId'
     | '/office/equipment/edit/$eqId'
     | '/office/registration/view/$regId'
@@ -234,14 +244,15 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/book/$eqId'
     | '/bookings/$bookingId'
-    | '/office/analytics'
     | '/book'
     | '/bookings'
     | '/office'
     | '/registration'
     | '/api/file'
+    | '/office/analytics'
     | '/office/configuration'
     | '/office/operators'
+    | '/office/sync'
     | '/office/booking/view/$bookingId'
     | '/office/equipment/edit/$eqId'
     | '/office/registration/view/$regId'
@@ -256,14 +267,15 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/book/$eqId'
     | '/bookings/$bookingId'
-    | '/office/analytics'
     | '/book/'
     | '/bookings/'
     | '/office/'
     | '/registration/'
     | '/api/file/'
+    | '/office/analytics/'
     | '/office/configuration/'
     | '/office/operators/'
+    | '/office/sync/'
     | '/office/booking/view/$bookingId'
     | '/office/equipment/edit/$eqId'
     | '/office/registration/view/$regId'
@@ -279,14 +291,15 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   BookEqIdRoute: typeof BookEqIdRoute
   BookingsBookingIdRoute: typeof BookingsBookingIdRoute
-  OfficeAnalyticsRoute: typeof OfficeAnalyticsRoute
   BookIndexRoute: typeof BookIndexRoute
   BookingsIndexRoute: typeof BookingsIndexRoute
   OfficeIndexRoute: typeof OfficeIndexRoute
   RegistrationIndexRoute: typeof RegistrationIndexRoute
   ApiFileIndexRoute: typeof ApiFileIndexRoute
+  OfficeAnalyticsIndexRoute: typeof OfficeAnalyticsIndexRoute
   OfficeConfigurationIndexRoute: typeof OfficeConfigurationIndexRoute
   OfficeOperatorsIndexRoute: typeof OfficeOperatorsIndexRoute
+  OfficeSyncIndexRoute: typeof OfficeSyncIndexRoute
   OfficeBookingViewBookingIdRoute: typeof OfficeBookingViewBookingIdRoute
   OfficeEquipmentEditEqIdRoute: typeof OfficeEquipmentEditEqIdRoute
   OfficeRegistrationViewRegIdRoute: typeof OfficeRegistrationViewRegIdRoute
@@ -347,13 +360,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BookIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/office/analytics': {
-      id: '/office/analytics'
-      path: '/office/analytics'
-      fullPath: '/office/analytics'
-      preLoaderRoute: typeof OfficeAnalyticsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/bookings/$bookingId': {
       id: '/bookings/$bookingId'
       path: '/bookings/$bookingId'
@@ -368,6 +374,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BookEqIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/office/sync/': {
+      id: '/office/sync/'
+      path: '/office/sync'
+      fullPath: '/office/sync'
+      preLoaderRoute: typeof OfficeSyncIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/office/operators/': {
       id: '/office/operators/'
       path: '/office/operators'
@@ -380,6 +393,13 @@ declare module '@tanstack/react-router' {
       path: '/office/configuration'
       fullPath: '/office/configuration'
       preLoaderRoute: typeof OfficeConfigurationIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/office/analytics/': {
+      id: '/office/analytics/'
+      path: '/office/analytics'
+      fullPath: '/office/analytics'
+      preLoaderRoute: typeof OfficeAnalyticsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/file/': {
@@ -447,14 +467,15 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   BookEqIdRoute: BookEqIdRoute,
   BookingsBookingIdRoute: BookingsBookingIdRoute,
-  OfficeAnalyticsRoute: OfficeAnalyticsRoute,
   BookIndexRoute: BookIndexRoute,
   BookingsIndexRoute: BookingsIndexRoute,
   OfficeIndexRoute: OfficeIndexRoute,
   RegistrationIndexRoute: RegistrationIndexRoute,
   ApiFileIndexRoute: ApiFileIndexRoute,
+  OfficeAnalyticsIndexRoute: OfficeAnalyticsIndexRoute,
   OfficeConfigurationIndexRoute: OfficeConfigurationIndexRoute,
   OfficeOperatorsIndexRoute: OfficeOperatorsIndexRoute,
+  OfficeSyncIndexRoute: OfficeSyncIndexRoute,
   OfficeBookingViewBookingIdRoute: OfficeBookingViewBookingIdRoute,
   OfficeEquipmentEditEqIdRoute: OfficeEquipmentEditEqIdRoute,
   OfficeRegistrationViewRegIdRoute: OfficeRegistrationViewRegIdRoute,
