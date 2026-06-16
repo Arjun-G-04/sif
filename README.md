@@ -1,6 +1,6 @@
 # SIF Web Application
 
-This is the web application for **Sophisticated Instrumentation Facility** of NIT Trichy. It leverages Tanstack Start and other varietry of modern Typescript/Javascript ecosystem to provide an efficient user and developer experience.
+This is the web application for **Sophisticated Instrumentation Facility** of NIT Trichy. This website is used for booking and managing the entire booking lifecycle of various instruments and facilities in SIF. It leverages Tanstack Start and modern Typescript/Javascript ecosystem to provide an efficient user and developer experience.
 
 # Setup
 
@@ -21,22 +21,10 @@ pnpm dev
 (set -a; source .env; set +a; ./script/seed.sh)
 ```
 
-### Production Compose Files
-There are now two production compose files:
-
-- `compose.prod.yaml` — uses the published DockerHub images:
-  - `computerguy0x04/sif:web-latest`
-  - `computerguy0x04/sif:migrator-latest`
-- `compose.build-prod.yaml` — builds the images locally from the Dockerfile targets.
-
-Use the published-image compose file for normal production deployments:
+### Production
+To deploy in production:
 ```bash
-docker compose -f compose.prod.yaml up -d
-```
-
-Use the build-based compose file when you want to build images locally:
-```bash
-docker compose -f compose.build-prod.yaml up -d --build
+docker compose -f compose.prod.yaml up -d --build
 ```
 
 ### Production Database Migrations
