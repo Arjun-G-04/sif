@@ -21,6 +21,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 BACKUP_DIR="$ROOT_DIR/backups"
 
+# Always run from the project root directory
+cd "$ROOT_DIR"
+
 echo -e "${BLUE}📦 Database Backup Utility${NC}"
 
 # Check if docker command is available
@@ -43,14 +46,17 @@ BACKUP_FILE="$BACKUP_DIR/backup_$TIMESTAMP.sql.gz"
 
 echo -e "${YELLOW}🔍 Checking database container status...${NC}"
 
-# Find the status of the database container
-# We target the service name 'db' matching the docker-compose config
-CONTAINER_STATUS=$(docker compose $COMPOSE_OPTS ps --format json db 2>/dev/null || docker compose $COMPOSE_OPTS ps db 2>/dev/null || echo "")
+# Check if the container is running
+# 1. Try using --filter "status=running" in quiet mode (returns container ID if running)
+CONTAINER_ID=$(docker compose $COMPOSE_OPTS ps --filter "status=running" -q db 2>/dev/null || echo "")
 
-# Ensure the db container is running
-if [[ -z "$CONTAINER_STATUS" || "$CONTAINER_STATUS" == *"Exit"* || "$CONTAINER_STATUS" == *"paused"* ]]; then
-    echo -e "${RED}❌ Database container 'db' is not running. Please start the services first (e.g., via docker compose up).${NC}"
-    exit 1
+# 2. Fallback: check standard ps output for "Up" or "running" (compatible with older compose versions)
+if [ -z "$CONTAINER_ID" ]; then
+    CONTAINER_STATUS=$(docker compose $COMPOSE_OPTS ps db 2>/dev/null || echo "")
+    if [[ ! "$CONTAINER_STATUS" =~ (Up|running) ]]; then
+        echo -e "${RED}❌ Database container 'db' is not running. Please start the services first (e.g., via docker compose up).${NC}"
+        exit 1
+    fi
 fi
 
 echo -e "${YELLOW}💾 Dumping database '$DB_NAME' as user '$DB_USER'...${NC}"
