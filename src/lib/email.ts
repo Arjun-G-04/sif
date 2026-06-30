@@ -8,13 +8,25 @@ const SendEmailInput = z.object({
 	subject: z.string().min(1, "Subject is required").optional(),
 });
 
+const smtpHost = process.env.WEBMAIL_HOST || "webmail.nitt.edu";
+const smtpUser = process.env.NITT_USER;
+const smtpPass = process.env.NITT_PASSWORD;
+
+const smtpPort = process.env.SMTP_PORT
+	? Number.parseInt(process.env.SMTP_PORT, 10)
+	: 587;
+const smtpSecure =
+	process.env.SMTP_SECURE !== undefined
+		? process.env.SMTP_SECURE === "true"
+		: false;
+
 const transporter = nodemailer.createTransport({
-	host: process.env.WEBMAIL_HOST,
-	port: 465,
-	secure: true,
+	host: smtpHost,
+	port: smtpPort,
+	secure: smtpSecure,
 	auth: {
-		user: process.env.NITT_USER,
-		pass: process.env.NITT_PASSWORD,
+		user: smtpUser,
+		pass: smtpPass,
 	},
 });
 
@@ -23,7 +35,7 @@ export const sendEmail = createServerOnlyFn(
 		const parsed = SendEmailInput.parse(input);
 
 		const mailOptions = {
-			from: process.env.NITT_USER,
+			from: smtpUser,
 			to: parsed.to,
 			subject: parsed.subject ?? "Message from SIF",
 			text: parsed.message,
