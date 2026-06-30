@@ -9,7 +9,7 @@ const SendEmailInput = z.object({
 });
 
 const transporter = nodemailer.createTransport({
-	host: "students.nitt.edu",
+	host: process.env.WEBMAIL_HOST,
 	port: 465,
 	secure: true,
 	auth: {
