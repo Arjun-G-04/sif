@@ -34,6 +34,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 import { useState, useEffect, useId } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const configurationQueryOptions = queryOptions({
 	queryKey: ["configuration"],
@@ -278,28 +279,81 @@ function ConfigurationPage() {
 							</CardDescription>
 						</CardHeader>
 						<CardContent className="space-y-6">
-							<div className="flex justify-end">
-								<FieldDialog
-									entityType="equipment"
-									stage="initial"
-									allowedRelations={[
-										{
-											entityType: "registration",
-											label: "Registration",
-										},
-									]}
-								/>
-							</div>
-							<FieldsView
-								fields={defaultEquipmentFields.data}
-								stage="initial"
-								allowedRelations={[
-									{
-										entityType: "registration",
-										label: "Registration",
-									},
-								]}
-							/>
+							<Tabs
+								defaultValue="initial"
+								className="w-full space-y-6"
+							>
+								<TabsList className="w-full bg-white border">
+									<TabsTrigger
+										value="initial"
+										className="data-[state=active]:bg-slate-100"
+									>
+										Initial Booking Fields
+									</TabsTrigger>
+									<TabsTrigger
+										value="payment"
+										className="data-[state=active]:bg-slate-100"
+									>
+										Payment Stage Fields
+									</TabsTrigger>
+								</TabsList>
+
+								<TabsContent
+									value="initial"
+									className="space-y-6 outline-none"
+								>
+									<div className="flex justify-end">
+										<FieldDialog
+											entityType="equipment"
+											stage="initial"
+											allowedRelations={[
+												{
+													entityType: "registration",
+													label: "Registration",
+												},
+											]}
+										/>
+									</div>
+									<FieldsView
+										fields={defaultEquipmentFields.data}
+										stage="initial"
+										allowedRelations={[
+											{
+												entityType: "registration",
+												label: "Registration",
+											},
+										]}
+									/>
+								</TabsContent>
+
+								<TabsContent
+									value="payment"
+									className="space-y-6 outline-none"
+								>
+									<div className="flex justify-end">
+										<FieldDialog
+											entityType="equipment"
+											stage="payment"
+											allowedRelations={[
+												{
+													entityType: "registration",
+													label: "Registration",
+												},
+											]}
+										/>
+									</div>
+									<FieldsView
+										fields={defaultEquipmentFields.data}
+										stage="payment"
+										allowedRelations={[
+											{
+												entityType: "registration",
+												label: "Registration",
+											},
+										]}
+									/>
+								</TabsContent>
+							</Tabs>
 						</CardContent>
 					</Card>
 				</div>
