@@ -29,11 +29,14 @@ fi
 # Check if admin user exists and create if not
 echo -e "${YELLOW}🔍 Checking if admin user exists...${NC}"
 
-# Check if running in production
+# Check if running in production or development
 COMPOSE_OPTS=""
 if [[ "$SCRIPT_ENV" == "production" || "$SCRIPT_ENV" == "prod" ]]; then
-    echo -e "${YELLOW}🏭 Running in production mode (using compose.prod.yaml)${NC}"
-    COMPOSE_OPTS="-f compose.prod.yaml"
+    echo -e "${YELLOW}🏭 Running in production mode (using compose.yaml)${NC}"
+    COMPOSE_OPTS="-f compose.yaml"
+else
+    echo -e "${YELLOW}🛠️ Running in development mode (using dev.yaml)${NC}"
+    COMPOSE_OPTS="-f dev.yaml"
 fi
 
 docker compose $COMPOSE_OPTS exec -T db psql -U "$DB_USER" -d "$DB_NAME" <<EOF

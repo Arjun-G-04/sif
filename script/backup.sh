@@ -32,9 +32,9 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-# Always use compose.prod.yaml for docker compose commands
-COMPOSE_OPTS="-f compose.prod.yaml"
-echo -e "${YELLOW}🐳 Using Compose File: compose.prod.yaml${NC}"
+# Always use compose.yaml for docker compose commands
+COMPOSE_OPTS="-f compose.yaml"
+echo -e "${YELLOW}🐳 Using Compose File: compose.yaml${NC}"
 
 
 # Ensure backups directory exists

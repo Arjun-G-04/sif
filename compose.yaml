@@ -1,4 +1,17 @@
 services:
+  web:
+    build:
+      context: .
+      target: runner
+    ports:
+      - "6677:3000"
+    env_file: .env.prod
+    restart: unless-stopped
+    depends_on:
+      - db
+    volumes:
+      - media_data:/app/media
+
   db:
     image: postgres:18-alpine
     restart: unless-stopped
@@ -6,10 +19,35 @@ services:
       POSTGRES_USER: db_user
       POSTGRES_PASSWORD: ${DB_PASS}
       POSTGRES_DB: sif
-    ports:
-      - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  adminer:
+    image: adminer:5.4.1
+    ports:
+      - "6767:8080"
+    command: php -S 0.0.0.0:8080 -t /var/www/html
+    restart: unless-stopped
+    depends_on:
+      - db
+
+  migrator:
+    profiles: ["tools"]
+    build:
+      context: .
+      target: migrator
+    environment:
+      DATABASE_URL: postgres://db_user:${DB_PASS}@db:5432/sif
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
 
 volumes:
   db_data:
+  media_data:
