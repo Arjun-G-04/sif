@@ -1,4 +1,4 @@
-import { createServerFn } from "@tanstack/react-start";
+import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
 import { hash } from "bcrypt";
 import { eq, and } from "drizzle-orm";
 import * as z from "zod";
@@ -159,49 +159,47 @@ export const getRegistration = createServerFn({ method: "GET" })
 		};
 	});
 
-export async function getRegistrationName(
-	registrationId: number,
-	configNameFieldId?: number | null,
-) {
-	if (!configNameFieldId) return "User";
-	const [nameResponse] = await db
-		.select({ value: fieldResponses.value })
-		.from(fieldResponses)
-		.where(
-			and(
-				eq(fieldResponses.entityType, "registration"),
-				eq(fieldResponses.entityId, registrationId),
-				eq(fieldResponses.fieldId, configNameFieldId),
-			),
-		)
-		.limit(1);
-	return nameResponse?.value || "User";
-}
+export const getRegistrationName = createServerOnlyFn(
+	async (registrationId: number, configNameFieldId?: number | null) => {
+		if (!configNameFieldId) return "User";
+		const [nameResponse] = await db
+			.select({ value: fieldResponses.value })
+			.from(fieldResponses)
+			.where(
+				and(
+					eq(fieldResponses.entityType, "registration"),
+					eq(fieldResponses.entityId, registrationId),
+					eq(fieldResponses.fieldId, configNameFieldId),
+				),
+			)
+			.limit(1);
+		return nameResponse?.value || "User";
+	},
+);
 
-export async function getRegistrationUserContext(
-	registrationId: number,
-	configNameFieldId?: number | null,
-) {
-	const [reg] = await db
-		.select()
-		.from(registrations)
-		.where(eq(registrations.id, registrationId))
-		.limit(1);
+export const getRegistrationUserContext = createServerOnlyFn(
+	async (registrationId: number, configNameFieldId?: number | null) => {
+		const [reg] = await db
+			.select()
+			.from(registrations)
+			.where(eq(registrations.id, registrationId))
+			.limit(1);
 
-	if (!reg) {
-		return { userName: "User", userEmail: null };
-	}
+		if (!reg) {
+			return { userName: "User", userEmail: null };
+		}
 
-	const userName = await getRegistrationName(
-		registrationId,
-		configNameFieldId,
-	);
+		const userName = await getRegistrationName(
+			registrationId,
+			configNameFieldId,
+		);
 
-	return {
-		userName,
-		userEmail: reg.email,
-	};
-}
+		return {
+			userName,
+			userEmail: reg.email,
+		};
+	},
+);
 
 const AcceptRegistrationInput = z.object({
 	regId: z.number(),
