@@ -84,6 +84,7 @@ export const submitRegistration = createServerFn({ method: "POST" })
 			undefined, // No specific entity ID for registration fields
 			`registrations/${registration.id}`,
 			["username", "password", "email", "phone"],
+			"initial",
 		);
 
 		// Insert all field responses

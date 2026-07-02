@@ -118,6 +118,26 @@ export function FieldsView({
 					</Badge>
 				</TableCell>
 				<TableCell>
+					{field.type !== "heading" &&
+					field.type !== "info_text" &&
+					field.type !== "admin_file" &&
+					field.type !== "group" ? (
+						field.required ? (
+							<span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+								Yes
+							</span>
+						) : (
+							<span className="inline-flex items-center rounded-md bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/10">
+								No
+							</span>
+						)
+					) : (
+						<span className="text-xs text-gray-400 italic">
+							N/A
+						</span>
+					)}
+				</TableCell>
+				<TableCell>
 					{(field.type === "single_select" ||
 						field.type === "multi_select") &&
 					field.options &&
@@ -336,6 +356,7 @@ export function FieldsView({
 							Field Name
 						</TableHead>
 						<TableHead>Type</TableHead>
+						<TableHead>Required</TableHead>
 						<TableHead>Options / Config</TableHead>
 						<TableHead>Active</TableHead>
 						{!readOnly && (

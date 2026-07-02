@@ -22,6 +22,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
 	type entityType as entityTypeDef,
 	type fieldStage,
@@ -95,10 +96,12 @@ export function FieldDialog({
 	const [relatedFieldId, setRelatedFieldId] = useState<string>(
 		field?.type === "relation" ? String(field.relation.relatedFieldId) : "",
 	);
+	const [required, setRequired] = useState(field?.required ?? true);
 
 	const [pendingFile, setPendingFile] = useState<File | null>(null);
 	const nameId = useId();
 	const orderId = useId();
+	const requiredId = useId();
 	const queryClient = useQueryClient();
 
 	const resetForm = useCallback(() => {
@@ -113,6 +116,7 @@ export function FieldDialog({
 		setStage(initialStage);
 		setRelatedEntityType("");
 		setRelatedFieldId("");
+		setRequired(true);
 	}, [initialStage]);
 
 	useEffect(() => {
@@ -123,6 +127,7 @@ export function FieldDialog({
 				setOrder(field.order);
 				setStage(field.stage || "initial");
 				setParentId(field.parentId ? String(field.parentId) : "none");
+				setRequired(field.required ?? true);
 				if (
 					(field.type === "single_select" ||
 						field.type === "multi_select") &&
@@ -280,6 +285,13 @@ export function FieldDialog({
 			type,
 			order,
 			stage,
+			required:
+				type !== "heading" &&
+				type !== "info_text" &&
+				type !== "admin_file" &&
+				type !== "group"
+					? required
+					: false,
 			options:
 				type === "single_select" || type === "multi_select"
 					? options.map((o) => o.value)
@@ -427,6 +439,26 @@ export function FieldDialog({
 							onChange={(e) => setOrder(Number(e.target.value))}
 						/>
 					</div>
+					{type !== "heading" &&
+						type !== "info_text" &&
+						type !== "admin_file" &&
+						type !== "group" && (
+							<div className="flex items-center space-x-2">
+								<Checkbox
+									id={requiredId}
+									checked={required}
+									onCheckedChange={(checked) =>
+										setRequired(!!checked)
+									}
+								/>
+								<Label
+									htmlFor={requiredId}
+									className="cursor-pointer"
+								>
+									Required Field
+								</Label>
+							</div>
+						)}
 					{type === "group" && (
 						<div className="space-y-2">
 							<Label>Max Iterations</Label>

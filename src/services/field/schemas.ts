@@ -9,6 +9,7 @@ export const CreateFieldInput = z.object({
 	type: z.enum(fieldType.enumValues, "Invalid field type"),
 	order: z.number().int().default(0),
 	stage: z.enum(fieldStage.enumValues).default("initial"),
+	required: z.boolean().default(true),
 	options: z.array(z.string()).optional(),
 	relation: z
 		.object({
@@ -39,6 +40,7 @@ export const UpdateFieldInput = z.object({
 	type: z.enum(fieldType.enumValues, "Invalid field type"),
 	order: z.number().int().default(0),
 	stage: z.enum(fieldStage.enumValues).default("initial"),
+	required: z.boolean().default(true),
 	options: z.array(z.string()).optional(),
 	relation: z
 		.object({

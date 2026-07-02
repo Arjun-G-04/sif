@@ -94,28 +94,40 @@ function ValueShowcase({ field, value }: { field: FieldType; value: unknown }) {
 					{field.name}
 				</div>
 				<div className="space-y-6 pl-4 border-l-2 border-blue-50">
-					{value.map((item, idx) => (
-						<div
-							key={`${field.id}_item_${idx}`}
-							className="space-y-3"
-						>
-							<div className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">
-								Item {idx + 1}
-							</div>
-							<div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
-								{field.children?.map((child) => (
-									<div key={child.id} className="space-y-1">
-										<div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-											{child.name}
+					{value.length > 0 ? (
+						value.map((item, idx) => (
+							<div
+								key={`${field.id}_item_${idx}`}
+								className="space-y-3"
+							>
+								<div className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">
+									Item {idx + 1}
+								</div>
+								<div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
+									{field.children?.map((child) => (
+										<div
+											key={child.id}
+											className="space-y-1"
+										>
+											<div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+												{child.name}
+											</div>
+											<div className="text-base font-semibold text-slate-900">
+												{formatValue(
+													child,
+													item[child.id],
+												)}
+											</div>
 										</div>
-										<div className="text-base font-semibold text-slate-900">
-											{formatValue(child, item[child.id])}
-										</div>
-									</div>
-								))}
+									))}
+								</div>
 							</div>
-						</div>
-					))}
+						))
+					) : (
+						<span className="text-sm text-slate-400 italic">
+							No items added
+						</span>
+					)}
 				</div>
 			</div>
 		);
@@ -267,22 +279,31 @@ export function FieldsForm({
 					continue;
 				}
 
-				let fieldSchema: z.ZodTypeAny = z.string();
+				let fieldSchema: z.ZodTypeAny;
 				if (
 					field.type === "text" ||
 					field.type === "single_select" ||
 					field.type === "date" ||
 					field.type === "relation"
 				) {
-					fieldSchema = z
-						.string()
-						.min(1, `${field.name} is required`);
+					fieldSchema = field.required
+						? z.string().min(1, `${field.name} is required`)
+						: z.string().optional();
 				} else if (field.type === "multi_select") {
-					fieldSchema = z
-						.array(z.string())
-						.min(1, `Select at least one option for ${field.name}`);
+					fieldSchema = field.required
+						? z
+								.array(z.string())
+								.min(
+									1,
+									`Select at least one option for ${field.name}`,
+								)
+						: z.array(z.string()).optional();
 				} else if (field.type === "file") {
-					fieldSchema = requiredFileSchema(field.name);
+					fieldSchema = field.required
+						? requiredFileSchema(field.name)
+						: z.unknown().optional();
+				} else {
+					fieldSchema = z.unknown().optional();
 				}
 				schemaObject[field.id.toString()] = fieldSchema;
 			}
@@ -429,7 +450,16 @@ export function FieldsForm({
 				))}
 			</div>
 
-			<div className="flex flex-col sm:flex-row justify-between gap-4 pt-6">
+			{fields.some((f) => f.required) && (
+				<p className="text-xs text-slate-500 mt-4 flex items-center gap-1.5 bg-slate-50 border border-slate-100 rounded-lg p-3 w-fit">
+					<span className="text-red-500 font-bold text-sm leading-none">
+						*
+					</span>
+					<span>Indicates mandatory fields</span>
+				</p>
+			)}
+
+			<div className="flex flex-col sm:flex-row justify-between gap-4">
 				{onBack && (
 					<Button
 						type="button"
@@ -558,6 +588,14 @@ function InternalFieldRenderer({
 					<div className="flex items-center gap-2">
 						<LockIcon className="w-4 h-4 text-slate-400" />
 						{field.name}
+						{field.required && (
+							<span
+								className="text-red-500 -ml-2"
+								aria-hidden="true"
+							>
+								*
+							</span>
+						)}
 					</div>
 				</FieldLabel>
 				<FieldContent>
@@ -596,6 +634,11 @@ function InternalFieldRenderer({
 						<TypeIcon className="w-4 h-4 text-slate-400" />
 					)}
 					{field.name}
+					{field.required && (
+						<span className="text-red-500 -ml-2" aria-hidden="true">
+							*
+						</span>
+					)}
 				</div>
 			</FieldLabel>
 			<FieldContent>
@@ -742,13 +785,6 @@ function GroupFieldRenderer({
 		name: fieldName as never, // name expects Path<FormValues>, but since it's dynamic we use never to bypass if Path fails
 	});
 
-	// Initialize with one item if empty
-	useMemo(() => {
-		if (items.length === 0) {
-			append({}, { shouldFocus: false });
-		}
-	}, [items.length, append]);
-
 	const max = field.groupConfig?.max || 1;
 
 	return (
@@ -806,7 +842,7 @@ function GroupFieldRenderer({
 						Add {field.name}
 					</Button>
 				)}
-				{items.length > 1 && (
+				{items.length > 0 && (
 					<Button
 						type="button"
 						variant="ghost"

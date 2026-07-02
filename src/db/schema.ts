@@ -144,6 +144,7 @@ export const fields = pgTable("fields", {
 	order: integer().notNull().default(0),
 	stage: fieldStage().notNull().default("initial"),
 	active: boolean().notNull().default(true),
+	required: boolean().notNull().default(true),
 });
 
 export const fieldGroups = pgTable("field_groups", {

@@ -120,6 +120,7 @@ export const submitBooking = createServerFn({ method: "POST" })
 			equipmentId,
 			`bookings/${equipmentId}`,
 			["equipmentId"],
+			"initial",
 		);
 
 		await db.transaction(async (tx) => {
@@ -447,6 +448,7 @@ export const submitBookingPaymentInfo = createServerFn({ method: "POST" })
 			booking.equipmentId,
 			`bookings/${booking.equipmentId}/payment`,
 			["bookingId"],
+			"payment",
 		);
 
 		if (fieldEntries.length > 0) {

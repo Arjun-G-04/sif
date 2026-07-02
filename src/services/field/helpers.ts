@@ -7,6 +7,7 @@ import {
 	fieldGroups,
 	fieldResponses,
 	fields,
+	type fieldStage,
 } from "../../db/schema";
 import type { FieldEntry } from "./types";
 
@@ -17,6 +18,7 @@ export const parseFieldResponses = createServerOnlyFn(
 		entityId: number | undefined,
 		fileSubPath: string,
 		skipKeys: string[] = [],
+		stage?: (typeof fieldStage.enumValues)[number],
 	): Promise<FieldEntry[]> => {
 		// Fetch fields from database
 		const entityFields = await db
@@ -25,6 +27,7 @@ export const parseFieldResponses = createServerOnlyFn(
 				name: fields.name,
 				type: fields.type,
 				parentId: fields.parentId,
+				required: fields.required,
 			})
 			.from(fields)
 			.where(
@@ -39,6 +42,7 @@ export const parseFieldResponses = createServerOnlyFn(
 								)
 							: eq(fields.entityId, entityId),
 					eq(fields.active, true),
+					stage ? eq(fields.stage, stage) : undefined,
 				),
 			);
 
@@ -115,6 +119,67 @@ export const parseFieldResponses = createServerOnlyFn(
 				iteration,
 				value: fieldValue,
 			});
+		}
+
+		// Find iteration counts for each parent group
+		const groupIterations = new Map<number, number>();
+		for (const entry of fieldEntries) {
+			const field = fieldIdToField.get(String(entry.fieldId));
+			if (field?.parentId !== null && field?.parentId !== undefined) {
+				const currentMax = groupIterations.get(field.parentId) ?? 0;
+				if (entry.iteration >= currentMax) {
+					groupIterations.set(field.parentId, entry.iteration + 1);
+				}
+			}
+		}
+
+		// Validate required fields
+		for (const field of entityFields) {
+			if (
+				field.type === "heading" ||
+				field.type === "info_text" ||
+				field.type === "admin_file" ||
+				field.type === "group"
+			) {
+				continue;
+			}
+
+			if (field.parentId === null) {
+				// Top-level field
+				if (field.required) {
+					const entry = fieldEntries.find(
+						(e) => e.fieldId === field.id && e.iteration === 0,
+					);
+					if (
+						!entry ||
+						entry.value === null ||
+						entry.value === undefined ||
+						entry.value.trim() === ""
+					) {
+						throw new Error(`Field "${field.name}" is required.`);
+					}
+				}
+			} else {
+				// Nested field under parent group
+				const numIterations = groupIterations.get(field.parentId) ?? 0;
+				if (numIterations > 0 && field.required) {
+					for (let i = 0; i < numIterations; i++) {
+						const entry = fieldEntries.find(
+							(e) => e.fieldId === field.id && e.iteration === i,
+						);
+						if (
+							!entry ||
+							entry.value === null ||
+							entry.value === undefined ||
+							entry.value.trim() === ""
+						) {
+							throw new Error(
+								`Field "${field.name}" is required for item ${i + 1}.`,
+							);
+						}
+					}
+				}
+			}
 		}
 
 		return fieldEntries;
