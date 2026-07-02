@@ -86,6 +86,10 @@ export const configurations = pgTable("configurations", {
 	registrationCategoryFieldId: integer(
 		"registration_category_field_id",
 	).references(() => fields.id, { onDelete: "set null" }),
+	registrationNameFieldId: integer("registration_name_field_id").references(
+		() => fields.id,
+		{ onDelete: "set null" },
+	),
 	istemToken: text("istem_token"),
 	istemTokenExpiresAt: timestamp("istem_token_expires_at"),
 	// Maps I-STEM API user fields (e.g., 'user_first_name') to SIF local field IDs (as string), 'static', or 'default'

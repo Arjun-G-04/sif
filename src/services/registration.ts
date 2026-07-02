@@ -159,6 +159,50 @@ export const getRegistration = createServerFn({ method: "GET" })
 		};
 	});
 
+export async function getRegistrationName(
+	registrationId: number,
+	configNameFieldId?: number | null,
+) {
+	if (!configNameFieldId) return "User";
+	const [nameResponse] = await db
+		.select({ value: fieldResponses.value })
+		.from(fieldResponses)
+		.where(
+			and(
+				eq(fieldResponses.entityType, "registration"),
+				eq(fieldResponses.entityId, registrationId),
+				eq(fieldResponses.fieldId, configNameFieldId),
+			),
+		)
+		.limit(1);
+	return nameResponse?.value || "User";
+}
+
+export async function getRegistrationUserContext(
+	registrationId: number,
+	configNameFieldId?: number | null,
+) {
+	const [reg] = await db
+		.select()
+		.from(registrations)
+		.where(eq(registrations.id, registrationId))
+		.limit(1);
+
+	if (!reg) {
+		return { userName: "User", userEmail: null };
+	}
+
+	const userName = await getRegistrationName(
+		registrationId,
+		configNameFieldId,
+	);
+
+	return {
+		userName,
+		userEmail: reg.email,
+	};
+}
+
 const AcceptRegistrationInput = z.object({
 	regId: z.number(),
 	categoryValue: z.string().min(1, "Category value is required"),
@@ -177,6 +221,9 @@ export const acceptRegistration = createServerFn({ method: "POST" })
 		const config = await getConfigHelper();
 		if (!config || !config.registrationCategoryFieldId) {
 			throw new Error("Category field is not configured in settings");
+		}
+		if (!config || !config.registrationNameFieldId) {
+			throw new Error("Name field is not configured in settings");
 		}
 		const categoryFieldId = config.registrationCategoryFieldId;
 
@@ -233,10 +280,27 @@ export const acceptRegistration = createServerFn({ method: "POST" })
 				.where(eq(registrations.id, regId));
 		});
 
+		const userName = await getRegistrationName(
+			reg.id,
+			config.registrationNameFieldId,
+		);
+
 		await sendEmail({
 			to: reg.email,
-			subject: "Registration Accepted",
-			message: `Your registration (ID: ${regId}) has been accepted. Please login with your registered email and password.`,
+			subject: "SIF Portal Registration Approved",
+			message: `Dear ${userName},
+
+Greetings from the Sophisticated Instrumentation Facility (SIF)!
+
+We are pleased to inform you that your registration on the SIF Portal has been successfully reviewed and approved. Your account is now active.
+
+You may now log in to the portal and proceed with instrument booking requests as per your requirement.
+
+If you need any assistance, please feel free to contact us at sif@nitt.edu/9489394853
+
+Warm regards,
+SIF Office
+NIT Trichy`,
 		});
 	});
 

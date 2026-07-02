@@ -113,6 +113,13 @@
       "when": 1782963311768,
       "tag": "0015_daily_jocasta",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1782981005074,
+      "tag": "0016_famous_praxagora",
+      "breakpoints": true
     }
   ]
 }

@@ -75,8 +75,9 @@ function RegistrationDetailPage() {
 	const registrationFields = useSuspenseQuery(registrationFieldsQueryOptions);
 
 	const categoryFieldId = config?.registrationCategoryFieldId;
-	const isConfigured = !!categoryFieldId;
-	const categoryField = isConfigured
+	const nameFieldId = config?.registrationNameFieldId;
+	const isConfigured = !!categoryFieldId && !!nameFieldId;
+	const categoryField = categoryFieldId
 		? registrationFields.data?.find((f) => f.id === categoryFieldId)
 		: null;
 
@@ -164,8 +165,24 @@ function RegistrationDetailPage() {
 						<div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-800 shadow-sm">
 							<AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
 							<div className="text-sm font-medium">
-								Category field is not configured in settings.
-								Please set a category field in the{" "}
+								{!categoryFieldId && !nameFieldId ? (
+									<>
+										Category and Name fields are not
+										configured in settings. Please set them
+										in the{" "}
+									</>
+								) : !categoryFieldId ? (
+									<>
+										Category field is not configured in
+										settings. Please set a category field in
+										the{" "}
+									</>
+								) : (
+									<>
+										Name field is not configured in
+										settings. Please set a name field in the{" "}
+									</>
+								)}
 								<Link
 									to="/office/configuration"
 									className="underline font-semibold hover:text-amber-900"

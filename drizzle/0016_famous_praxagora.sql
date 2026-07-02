@@ -1,0 +1,2 @@
+ALTER TABLE "configurations" ADD COLUMN "registration_name_field_id" integer;--> statement-breakpoint
+ALTER TABLE "configurations" ADD CONSTRAINT "configurations_registration_name_field_id_fields_id_fk" FOREIGN KEY ("registration_name_field_id") REFERENCES "public"."fields"("id") ON DELETE set null ON UPDATE no action;

@@ -12,6 +12,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { and, eq } from "drizzle-orm";
 import * as z from "zod";
 import { getFieldResponses, parseFieldResponses } from "./field";
+import { sendEmail } from "@/lib/email";
+import { getConfigHelper } from "./configuration";
+import { getRegistrationUserContext } from "./registration";
 
 async function getOfficeActorContext() {
 	const authUser = await requireOfficeUser();
@@ -40,6 +43,8 @@ async function ensureBookingAccess(bookingId: number) {
 				id: bookings.id,
 				equipmentId: bookings.equipmentId,
 				status: bookings.status,
+				userId: bookings.userId,
+				createdAt: bookings.createdAt,
 			})
 			.from(bookings)
 			.where(eq(bookings.id, bookingId))
@@ -57,6 +62,8 @@ async function ensureBookingAccess(bookingId: number) {
 			id: bookings.id,
 			equipmentId: bookings.equipmentId,
 			status: bookings.status,
+			userId: bookings.userId,
+			createdAt: bookings.createdAt,
 		})
 		.from(bookings)
 		.innerJoin(
@@ -74,6 +81,29 @@ async function ensureBookingAccess(bookingId: number) {
 	}
 
 	return { ...actor, booking };
+}
+
+async function getBookingUserContext(bookingUserId: number) {
+	const config = await getConfigHelper();
+	const [user] = await db
+		.select()
+		.from(users)
+		.where(eq(users.id, bookingUserId))
+		.limit(1);
+
+	let userName = "User";
+	let userEmail: string | null = user?.username || null;
+
+	if (user?.registrationId) {
+		const regCtx = await getRegistrationUserContext(
+			user.registrationId,
+			config?.registrationNameFieldId,
+		);
+		userName = regCtx.userName;
+		userEmail = regCtx.userEmail;
+	}
+
+	return { userName, userEmail };
 }
 
 export const submitBooking = createServerFn({ method: "POST" })
@@ -291,6 +321,43 @@ export const acceptBooking = createServerFn({ method: "POST" })
 				rejectionReason: null,
 			})
 			.where(eq(bookings.id, access.booking.id));
+
+		const { userName, userEmail } = await getBookingUserContext(
+			access.booking.userId,
+		);
+
+		const bookingDate = access.booking.createdAt
+			? new Date(access.booking.createdAt).toLocaleDateString("en-IN")
+			: new Date().toLocaleDateString("en-IN");
+
+		const totalAmount = parsed.price + parsed.gst;
+
+		if (userEmail) {
+			await sendEmail({
+				to: userEmail,
+				subject: "Booking Approved – Proceed with Payment",
+				message: `Dear ${userName},
+
+Your booking request (Booking ID: ${access.booking.id}) submitted on ${bookingDate} has been reviewed and approved by the SIF Office.
+
+Kindly note that the testing charges applicable to your booking can be referred to in the SIF portal. Please proceed with the payment as per the details given below to confirm your slot.
+
+Payment Details:
+Payment Amount: ₹${totalAmount}
+Payment Mode: SBI Collect
+
+Payment Procedure: https://www.nitt.edu/home/rc/sif/payment_procedure/
+
+After completing the payment, please upload the payment receipt in the SIF portal under your booking section and click “Submit”.
+
+For any clarification, feel free to contact us at sif@nitt.edu/9489394853
+
+Regards,
+SIF Office
+NIT Trichy`,
+			});
+		}
+
 		return { success: true };
 	});
 
@@ -330,6 +397,31 @@ export const verifyBookingPayment = createServerFn({ method: "POST" })
 			.update(bookings)
 			.set({ status: "processing" })
 			.where(eq(bookings.id, access.booking.id));
+
+		const { userName, userEmail } = await getBookingUserContext(
+			access.booking.userId,
+		);
+
+		if (userEmail) {
+			await sendEmail({
+				to: userEmail,
+				subject: "Booking Confirmed – Testing in Progress",
+				message: `Dear ${userName},
+
+This is to inform you that your booking (Booking ID: ${access.booking.id}) has been successfully confirmed.
+
+Your request is currently being processed, and the testing activities will be carried out as per the approved schedule. You will be intimated once the testing is completed and the results are ready.
+
+Thank you for choosing the Sophisticated Instrumentation Facility (SIF).
+
+If you need any assistance, please feel free to contact us at sif@nitt.edu/9489394853
+
+Warm regards,
+SIF Office
+NIT Trichy`,
+			});
+		}
+
 		return { success: true };
 	});
 
@@ -346,6 +438,33 @@ export const completeBooking = createServerFn({ method: "POST" })
 			.update(bookings)
 			.set({ status: "completed" })
 			.where(eq(bookings.id, access.booking.id));
+
+		const { userName, userEmail } = await getBookingUserContext(
+			access.booking.userId,
+		);
+
+		if (userEmail) {
+			await sendEmail({
+				to: userEmail,
+				subject: "Test Completed – Results Available",
+				message: `Dear ${userName},
+
+We are pleased to inform you that the testing for your booking (Booking ID: ${access.booking.id}) has been successfully completed and officially closed in the SIF Portal.
+
+The test results/report have been shared to your registered email ID. If you require any clarification regarding the results, please feel free to contact the SIF Office.
+
+We sincerely thank you for utilizing the Sophisticated Instrumentation Facility (SIF) services. Your feedback is valuable to us and helps us improve our services. We kindly request you to take a moment to rate & review us at: https://share.google/RVDgqzE5SGI5Wg4Na
+
+Give your feedback here: https://forms.gle/F8GCdVHsQAB3q5heA
+
+We look forward to supporting your future research and testing requirements.
+
+Warm regards,
+SIF Office
+NIT Trichy`,
+			});
+		}
+
 		return { success: true };
 	});
 

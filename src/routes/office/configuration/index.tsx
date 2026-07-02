@@ -82,8 +82,13 @@ function ConfigurationPage() {
 			configuration.data?.registrationCategoryFieldId?.toString() ||
 				"none",
 		);
+	const [registrationNameFieldId, setRegistrationNameFieldId] =
+		useState<string>(
+			configuration.data?.registrationNameFieldId?.toString() || "none",
+		);
 	const officeEmailId = useId();
 	const categoryFieldSelectId = useId();
+	const nameFieldSelectId = useId();
 
 	useEffect(() => {
 		if (configuration.data?.officeEmail) {
@@ -95,6 +100,13 @@ function ConfigurationPage() {
 			);
 		} else {
 			setRegistrationCategoryFieldId("none");
+		}
+		if (configuration.data?.registrationNameFieldId) {
+			setRegistrationNameFieldId(
+				configuration.data.registrationNameFieldId.toString(),
+			);
+		} else {
+			setRegistrationNameFieldId("none");
 		}
 	}, [configuration.data]);
 
@@ -128,9 +140,14 @@ function ConfigurationPage() {
 			registrationCategoryFieldId === "none"
 				? null
 				: Number(registrationCategoryFieldId);
+		const nameFieldId =
+			registrationNameFieldId === "none"
+				? null
+				: Number(registrationNameFieldId);
 		updateMutation.mutate({
 			data: {
 				registrationCategoryFieldId: fieldId,
+				registrationNameFieldId: nameFieldId,
 			},
 		});
 	};
@@ -248,14 +265,54 @@ function ConfigurationPage() {
 										</SelectContent>
 									</Select>
 								</div>
+								<div className="space-y-2">
+									<Label htmlFor={nameFieldSelectId}>
+										Registration Name Field (Must be text)
+									</Label>
+									<Select
+										value={registrationNameFieldId}
+										onValueChange={
+											setRegistrationNameFieldId
+										}
+									>
+										<SelectTrigger
+											id={nameFieldSelectId}
+											className="w-full"
+										>
+											<SelectValue placeholder="Select registration name field" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="none">
+												None (Disabled)
+											</SelectItem>
+											{registrationFields.data
+												?.filter(
+													(f) =>
+														f.type === "text" &&
+														f.active,
+												)
+												.map((field) => (
+													<SelectItem
+														key={field.id}
+														value={field.id.toString()}
+													>
+														{field.name}
+													</SelectItem>
+												))}
+										</SelectContent>
+									</Select>
+								</div>
 								<div className="flex justify-end pt-2">
 									<Button
 										type="submit"
 										disabled={
 											updateMutation.isPending ||
-											registrationCategoryFieldId ===
+											(registrationCategoryFieldId ===
 												(configuration.data?.registrationCategoryFieldId?.toString() ||
-													"none")
+													"none") &&
+												registrationNameFieldId ===
+													(configuration.data?.registrationNameFieldId?.toString() ||
+														"none"))
 										}
 									>
 										{updateMutation.isPending && (
