@@ -6,7 +6,7 @@ import {
 	useSuspenseQuery,
 } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { AlertCircle, Info } from "lucide-react";
+import { AlertCircle, Info, Mail, MapPin, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { FieldsForm } from "@/components/general/fieldsForm";
 import { FileViewer } from "@/components/general/fieldResponses";
@@ -175,6 +175,144 @@ function UserBookingDetailPage() {
 								<p className="text-blue-800 text-sm leading-relaxed whitespace-pre-wrap italic">
 									{data.remarks || "No remarks provided."}
 								</p>
+							</div>
+						</div>
+					)}
+
+					{data.status === "payment_verification" && (
+						<div className="bg-purple-50/50 border border-purple-100 rounded-xl p-6 md:p-8 space-y-6">
+							<div className="flex items-start gap-3">
+								<Info className="w-5 h-5 text-purple-700 mt-0.5 animate-pulse" />
+								<div className="space-y-4">
+									<div>
+										<h3 className="text-lg font-bold text-purple-900">
+											Next Step: Submit or Dispatch
+											Samples
+										</h3>
+										<p className="text-purple-800 text-sm leading-relaxed mt-1">
+											Please submit or dispatch your
+											samples to the address below for
+											analysis:
+										</p>
+									</div>
+
+									<div className="bg-white border border-purple-100 rounded-lg p-5 text-slate-800 text-sm font-medium space-y-2 max-w-lg shadow-sm">
+										<p className="font-bold text-purple-950 flex items-center gap-2">
+											<MapPin className="w-4 h-4 text-purple-700 shrink-0" />
+											Sophisticated Instrumentation
+											Facility (SIF)
+										</p>
+										<div className="pl-6 space-y-1 text-slate-700 font-normal">
+											<p>CEDI Building (Left Wing)</p>
+											<p>Opposite to Central Library</p>
+											<p>
+												National Institute of Technology
+												Tiruchirappalli
+											</p>
+											<p>Tiruchirappalli – 620 015</p>
+											<p>Tamil Nadu, India</p>
+										</div>
+										<div className="pt-2 pl-6 border-t border-purple-100/50 flex flex-col gap-1.5 text-xs text-slate-500 font-normal">
+											<p className="flex items-center gap-1.5">
+												<Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+												Email:{" "}
+												<a
+													href="mailto:sif@nitt.edu"
+													className="text-purple-700 hover:underline"
+												>
+													sif@nitt.edu
+												</a>
+											</p>
+											<p className="flex items-center gap-1.5">
+												<Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+												Phone: +91 94893 94853
+											</p>
+										</div>
+									</div>
+
+									<p className="text-purple-800 text-sm font-semibold">
+										Once your samples are received at SIF,
+										the testing process will be initiated.
+										You will be notified upon completion of
+										the test!
+									</p>
+								</div>
+							</div>
+						</div>
+					)}
+
+					{data.status === "payment" && (
+						<div className="bg-blue-50/50 border border-blue-100 rounded-xl p-6 md:p-8 space-y-6">
+							<div className="flex items-start gap-3">
+								<Info className="w-5 h-5 text-blue-700 mt-0.5 animate-pulse" />
+								<div className="space-y-4">
+									<div>
+										<h3 className="text-lg font-bold text-blue-900">
+											Payment Procedure – SBI Collect
+										</h3>
+										<p className="text-blue-800 text-sm leading-relaxed mt-1">
+											Please follow the steps below to
+											make the payment:
+										</p>
+									</div>
+
+									<div className="bg-white border border-blue-100 rounded-lg p-5 text-slate-800 text-sm font-medium space-y-3 shadow-sm">
+										<ol className="space-y-2 list-decimal list-inside text-slate-700 font-normal">
+											<li>
+												Go to{" "}
+												<a
+													href="https://www.onlinesbi.sbi/sbicollect/"
+													target="_blank"
+													rel="noopener noreferrer"
+													className="text-blue-700 hover:underline font-medium"
+												>
+													SBI Collect webpage
+												</a>
+											</li>
+											<li>
+												Select the &lsquo;Educational
+												Institution&rsquo; category
+											</li>
+											<li>
+												Search for &lsquo;Conference and
+												Workshop NIT Trichy&rsquo; and
+												select the same.
+											</li>
+											<li>
+												In the payment category, select
+												&lsquo;SIF&rsquo;
+											</li>
+											<li>
+												Fill in the required areas and
+												make the payment
+											</li>
+											<li>
+												Save the payment receipt and
+												submit it with exact details in
+												the form below
+											</li>
+											<li>
+												Submit the printed copy of the
+												payment receipt and the
+												requisition form.
+											</li>
+										</ol>
+									</div>
+
+									<div className="bg-red-50 border border-red-200 rounded-lg p-4">
+										<div>
+											<h4 className="text-xs font-bold text-red-800 uppercase tracking-wider">
+												Important Note
+											</h4>
+											<p className="text-red-700 text-sm mt-0.5 leading-relaxed">
+												Do not make any payment without
+												prior confirmation from the SIF
+												Office. Payments made without
+												approval are non-refundable.
+											</p>
+										</div>
+									</div>
+								</div>
 							</div>
 						</div>
 					)}

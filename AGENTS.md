@@ -1,7 +1,7 @@
 # Agent Guide: SIF
 
 ## Commands
-- Dev/Build: `pnpm dev` (port 3000), `pnpm build`, `pnpm preview`, `pnpm exec tsc`
+- Dev/Build: `pnpm dev` (port 3000), `pnpm build` (not necessary for every change), `pnpm preview`, `pnpm exec tsc`
 - Code Quality: Biome (`pnpm check` / `pnpm lint` / `pnpm format`) - no ESLint/Prettier
 - Test: Vitest (`pnpm test`, `pnpm vitest run <file>`)
 - DB: Drizzle (`pnpm db:generate`, `pnpm db:migrate`, `pnpm db:push`, `pnpm db:studio`)

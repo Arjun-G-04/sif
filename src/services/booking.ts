@@ -612,6 +612,40 @@ export const submitBookingPaymentInfo = createServerFn({ method: "POST" })
 				.update(bookings)
 				.set({ status: "payment_verification" })
 				.where(eq(bookings.id, booking.id));
+
+			const { userName, userEmail } = await getBookingUserContext(
+				booking.userId,
+			);
+
+			if (userEmail) {
+				await sendEmail({
+					to: userEmail,
+					subject: "Payment details received successfully",
+					message: `Dear ${userName},
+
+Thank you for completing the payment process and uploading the payment receipt.
+
+Your payment details have been received successfully.
+
+Next Step: Please submit or dispatch your samples to the address below for analysis:
+
+Sophisticated Instrumentation Facility (SIF)
+CEDI Building (Left Wing)
+Opposite to Central Library
+National Institute of Technology Tiruchirappalli
+Tiruchirappalli – 620 015
+Tamil Nadu, India
+
+Email: sif@nitt.edu
+Phone: +91 94893 94853
+
+Once your samples are received at SIF, the testing process will be initiated. You will be notified upon completion of the test!
+
+Regards,
+SIF Office
+NIT Trichy`,
+				});
+			}
 		}
 
 		return { success: true };
