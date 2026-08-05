@@ -4,7 +4,7 @@ services:
       context: .
       target: runner
     ports:
-      - "6677:3000"
+      - "127.0.0.1:3141:3000"
     env_file: .env.prod
     restart: unless-stopped
     depends_on:
@@ -30,7 +30,7 @@ services:
   adminer:
     image: adminer:5.4.1
     ports:
-      - "6767:8080"
+      - "127.0.0.1:3142:8080"
     command: php -S 0.0.0.0:8080 -t /var/www/html
     restart: unless-stopped
     depends_on:
