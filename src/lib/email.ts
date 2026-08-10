@@ -8,10 +8,23 @@ const SendEmailInput = z.object({
 	subject: z.string().min(1, "Subject is required").optional(),
 });
 
-const smtpHost = process.env.WEBMAIL_HOST || "webmail.nitt.edu";
+const gmailEmail = process.env.GMAIL_EMAILID;
+const gmailPass = process.env.GMAIL_APP_PASSWORD;
+const isGmail = !!(gmailEmail && gmailPass);
+
 const nittUser = process.env.NITT_USER || "";
-const smtpUser = nittUser.includes("@") ? nittUser.split("@")[0] : nittUser;
-const smtpPass = process.env.NITT_PASSWORD;
+
+const smtpHost = isGmail
+	? "smtp.gmail.com"
+	: process.env.WEBMAIL_HOST || "webmail.nitt.edu";
+
+const smtpUser = isGmail
+	? gmailEmail
+	: nittUser.includes("@")
+		? nittUser.split("@")[0]
+		: nittUser;
+
+const smtpPass = isGmail ? gmailPass : process.env.NITT_PASSWORD;
 
 const smtpPort = process.env.SMTP_PORT
 	? Number.parseInt(process.env.SMTP_PORT, 10)
@@ -36,7 +49,7 @@ export const sendEmail = createServerOnlyFn(
 		const parsed = SendEmailInput.parse(input);
 
 		const mailOptions = {
-			from: nittUser,
+			from: isGmail ? gmailEmail : nittUser,
 			to: parsed.to,
 			subject: parsed.subject ?? "Message from SIF",
 			text: parsed.message,
