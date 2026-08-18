@@ -74,13 +74,17 @@ function BookingDetailPage() {
 	const gstId = useId();
 	const remarksId = useId();
 	const reasonId = useId();
+	const priceAmount = data.price ?? 0;
 	const gstAmount = data.gst ?? 0;
-	const totalAmount = (data.price ?? 0) + gstAmount;
+	const totalAmount = Number((priceAmount + gstAmount).toFixed(2));
 	const previewPrice = Number(price);
 	const previewGst = Number(gst);
-	const previewTotal =
-		(Number.isNaN(previewPrice) ? 0 : previewPrice) +
-		(Number.isNaN(previewGst) ? 0 : previewGst);
+	const previewTotal = Number(
+		(
+			(Number.isNaN(previewPrice) ? 0 : previewPrice) +
+			(Number.isNaN(previewGst) ? 0 : previewGst)
+		).toFixed(2),
+	);
 
 	const acceptMutation = useMutation({
 		mutationFn: acceptBooking,
@@ -300,44 +304,19 @@ function BookingDetailPage() {
 									label="Status"
 									value={data.status.toUpperCase()}
 								/>
-								{(data.status === "payment" ||
-									data.status === "payment_rejected" ||
-									data.status === "processing") && (
-									<>
-										<DetailItem
-											label="Total (Testing Fee + GST)"
-											value={`₹${data.price ?? 0} + ₹${data.gst ?? 0} = ₹${totalAmount}`}
-										/>
-										<DetailItem
-											label="Remarks"
-											value={data.remarks || "-"}
-										/>
-									</>
-								)}
-								{data.status === "payment_verification" && (
-									<>
-										<DetailItem
-											label="Total (Testing Fee + GST)"
-											value={`₹${data.price ?? 0} + ₹${data.gst ?? 0} = ₹${totalAmount}`}
-										/>
-										<DetailItem
-											label="Remarks"
-											value={data.remarks || "-"}
-										/>
-									</>
-								)}
-								{data.status === "completed" && (
-									<>
-										<DetailItem
-											label="Total (Testing Fee + GST)"
-											value={`₹${data.price ?? 0} + ₹${data.gst ?? 0} = ₹${totalAmount}`}
-										/>
-										<DetailItem
-											label="Remarks"
-											value={data.remarks || "-"}
-										/>
-									</>
-								)}
+								{data.status !== "pending" &&
+									data.status !== "rejected" && (
+										<>
+											<DetailItem
+												label="Total (Testing Fee + GST)"
+												value={`₹${priceAmount} + ₹${gstAmount} = ₹${totalAmount}`}
+											/>
+											<DetailItem
+												label="Remarks"
+												value={data.remarks || "—"}
+											/>
+										</>
+									)}
 							</div>
 						</div>
 

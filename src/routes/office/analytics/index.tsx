@@ -202,9 +202,7 @@ function AnalyticsPage() {
 											</SelectItem>
 											{fieldOptions.map((o) => (
 												<SelectItem
-													key={
-														"${selectedFieldId}-${o.value}"
-													}
+													key={`${selectedFieldId}-${o.value}`}
 													value={o.value}
 												>
 													{o.value}
@@ -292,7 +290,7 @@ function AnalyticsPage() {
 										/>
 										<Tooltip
 											formatter={(val: number) => [
-												"₹${val.toLocaleString()}",
+												`₹${val.toLocaleString()}`,
 												"Revenue",
 											]}
 											contentStyle={{
@@ -334,12 +332,12 @@ function AnalyticsPage() {
 											<XAxis dataKey="month" />
 											<YAxis
 												tickFormatter={(val) =>
-													"₹${val}"
+													`₹${val}`
 												}
 											/>
 											<Tooltip
 												formatter={(val: number) => [
-													"₹${val.toLocaleString()}",
+													`₹${val.toLocaleString()}`,
 													"Revenue",
 												]}
 												contentStyle={{

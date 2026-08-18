@@ -9,7 +9,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AlertCircle, Info, Mail, MapPin, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { FieldsForm } from "@/components/general/fieldsForm";
-import { FileViewer } from "@/components/general/fieldResponses";
+import { ResponseValueDisplay } from "@/components/general/fieldResponses";
 import {
 	Table,
 	TableBody,
@@ -132,7 +132,8 @@ function UserBookingDetailPage() {
 		(r) => r.stage === "payment",
 	);
 	const gstAmount = data.gst ?? 0;
-	const totalAmount = (data.price ?? 0) + gstAmount;
+	const priceAmount = data.price ?? 0;
+	const totalAmount = Number((priceAmount + gstAmount).toFixed(2));
 
 	return (
 		<div className="min-h-screen bg-slate-50/50 flex flex-col pb-12">
@@ -163,8 +164,8 @@ function UserBookingDetailPage() {
 								</h3>
 								<div className="space-y-1 text-blue-900">
 									<p className="text-3xl font-bold">
-										₹{data.price ?? 0} + ₹{data.gst ?? 0} =
-										₹{totalAmount}
+										₹{priceAmount} + ₹{gstAmount} = ₹
+										{totalAmount}
 									</p>
 								</div>
 							</div>
@@ -385,14 +386,14 @@ function UserBookingDetailPage() {
 								</h2>
 
 								<div className="space-y-6">
-									<div className="border rounded-xl overflow-hidden">
-										<Table>
+									<div className="border rounded-xl overflow-hidden shadow-xs">
+										<Table className="table-fixed w-full">
 											<TableHeader>
-												<TableRow className="bg-slate-50">
-													<TableHead className="w-1/3 font-semibold text-xs uppercase tracking-wider">
+												<TableRow className="bg-slate-50/80">
+													<TableHead className="w-[30%] font-semibold text-xs uppercase tracking-wider text-slate-800">
 														Initial Field
 													</TableHead>
-													<TableHead className="font-semibold text-xs uppercase tracking-wider">
+													<TableHead className="w-[70%] font-semibold text-xs uppercase tracking-wider text-slate-800">
 														Value
 													</TableHead>
 												</TableRow>
@@ -404,10 +405,11 @@ function UserBookingDetailPage() {
 															key={
 																resp.responseId
 															}
+															className="hover:bg-slate-50/40 align-top"
 														>
-															<TableCell className="font-medium text-slate-700 py-4">
+															<TableCell className="font-medium text-slate-700 py-3.5 px-4 align-top max-w-0 break-words">
 																<div className="flex flex-col gap-1">
-																	<span className="flex items-center gap-1">
+																	<span className="font-medium text-slate-800 leading-snug">
 																		{
 																			resp.fieldName
 																		}
@@ -415,7 +417,7 @@ function UserBookingDetailPage() {
 																			0 ||
 																			resp.parentId !==
 																				null) && (
-																			<span className="text-xs text-slate-400 font-normal">
+																			<span className="ml-1.5 text-xs text-slate-400 font-normal">
 																				(#
 																				{resp.iteration +
 																					1}
@@ -425,45 +427,24 @@ function UserBookingDetailPage() {
 																	</span>
 																</div>
 															</TableCell>
-															<TableCell className="py-4">
-																<div className="flex items-center gap-3">
-																	{resp.adminValue ? (
-																		<>
-																			<span className="text-slate-400 text-sm line-through decoration-slate-300">
-																				{resp.fieldType ===
-																				"file"
-																					? "File uploaded"
-																					: resp.value ||
-																						"—"}
-																			</span>
-																			<span className="text-blue-700 font-semibold bg-blue-50 px-2.5 py-1 rounded text-sm border border-blue-100/50">
-																				{
-																					resp.adminValue
-																				}
-																			</span>
-																		</>
-																	) : (
-																		<div className="text-slate-700">
-																			{resp.fieldType ===
-																			"file" ? (
-																				<FileViewer
-																					responseId={
-																						resp.responseId
-																					}
-																					name={
-																						resp.fieldName
-																					}
-																					hasFile={
-																						!!resp.value
-																					}
-																				/>
-																			) : (
-																				resp.value ||
-																				"—"
-																			)}
-																		</div>
-																	)}
-																</div>
+															<TableCell className="py-3.5 px-4 align-top max-w-0">
+																<ResponseValueDisplay
+																	value={
+																		resp.value
+																	}
+																	fieldType={
+																		resp.fieldType
+																	}
+																	responseId={
+																		resp.responseId
+																	}
+																	fieldName={
+																		resp.fieldName
+																	}
+																	adminValue={
+																		resp.adminValue
+																	}
+																/>
 															</TableCell>
 														</TableRow>
 													),
@@ -478,14 +459,14 @@ function UserBookingDetailPage() {
 												<Info className="w-4 h-4" />
 												Payment Stage Information
 											</h3>
-											<div className="border border-blue-100 rounded-xl overflow-hidden bg-blue-50/20">
-												<Table>
+											<div className="border border-blue-100 rounded-xl overflow-hidden bg-blue-50/20 shadow-xs">
+												<Table className="table-fixed w-full">
 													<TableHeader>
 														<TableRow className="bg-blue-50/50">
-															<TableHead className="w-1/3 font-semibold text-xs uppercase tracking-wider text-blue-900">
+															<TableHead className="w-[30%] font-semibold text-xs uppercase tracking-wider text-blue-900">
 																Payment Field
 															</TableHead>
-															<TableHead className="font-semibold text-xs uppercase tracking-wider text-blue-900">
+															<TableHead className="w-[70%] font-semibold text-xs uppercase tracking-wider text-blue-900">
 																Value
 															</TableHead>
 														</TableRow>
@@ -497,11 +478,11 @@ function UserBookingDetailPage() {
 																	key={
 																		resp.responseId
 																	}
-																	className="border-blue-50"
+																	className="border-blue-50/70 hover:bg-blue-50/40 align-top"
 																>
-																	<TableCell className="font-medium text-slate-700 py-4">
+																	<TableCell className="font-medium text-slate-700 py-3.5 px-4 align-top max-w-0 break-words">
 																		<div className="flex flex-col gap-1">
-																			<span className="flex items-center gap-1">
+																			<span className="font-medium text-slate-800 leading-snug">
 																				{
 																					resp.fieldName
 																				}
@@ -509,7 +490,7 @@ function UserBookingDetailPage() {
 																					0 ||
 																					resp.parentId !==
 																						null) && (
-																					<span className="text-xs text-slate-400 font-normal">
+																					<span className="ml-1.5 text-xs text-slate-400 font-normal">
 																						(#
 																						{resp.iteration +
 																							1}
@@ -519,45 +500,24 @@ function UserBookingDetailPage() {
 																			</span>
 																		</div>
 																	</TableCell>
-																	<TableCell className="py-4">
-																		<div className="flex items-center gap-3">
-																			{resp.adminValue ? (
-																				<>
-																					<span className="text-slate-400 text-sm line-through decoration-slate-300">
-																						{resp.fieldType ===
-																						"file"
-																							? "File uploaded"
-																							: resp.value ||
-																								"—"}
-																					</span>
-																					<span className="text-blue-700 font-semibold bg-blue-50 px-2.5 py-1 rounded text-sm border border-blue-100/50">
-																						{
-																							resp.adminValue
-																						}
-																					</span>
-																				</>
-																			) : (
-																				<div className="text-slate-700">
-																					{resp.fieldType ===
-																					"file" ? (
-																						<FileViewer
-																							responseId={
-																								resp.responseId
-																							}
-																							name={
-																								resp.fieldName
-																							}
-																							hasFile={
-																								!!resp.value
-																							}
-																						/>
-																					) : (
-																						resp.value ||
-																						"—"
-																					)}
-																				</div>
-																			)}
-																		</div>
+																	<TableCell className="py-3.5 px-4 align-top max-w-0">
+																		<ResponseValueDisplay
+																			value={
+																				resp.value
+																			}
+																			fieldType={
+																				resp.fieldType
+																			}
+																			responseId={
+																				resp.responseId
+																			}
+																			fieldName={
+																				resp.fieldName
+																			}
+																			adminValue={
+																				resp.adminValue
+																			}
+																		/>
 																	</TableCell>
 																</TableRow>
 															),

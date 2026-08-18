@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 import {
 	Table,
 	TableBody,
@@ -12,8 +13,10 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import { updateBookingFields } from "@/services/booking";
-import { FileViewer } from "../general/fieldResponses";
+import { FileViewer, isLongFieldValue } from "../general/fieldResponses";
 
 interface BookingResponse {
 	responseId: number;
@@ -62,10 +65,10 @@ export function BookingFieldsEditor({
 		},
 	});
 
-	const handleValueChange = (responseId: number, value: string) => {
+	const handleValueChange = (responseId: number, value: string | null) => {
 		setEditedValues((prev) => ({
 			...prev,
-			[responseId]: value || null,
+			[responseId]: value,
 		}));
 	};
 
@@ -131,7 +134,7 @@ export function BookingFieldsEditor({
 				>
 					{updateMutation.isPending ? (
 						<span className="flex items-center gap-2">
-							<span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+							<Spinner className="h-4 w-4" />
 							Saving...
 						</span>
 					) : (
@@ -153,16 +156,16 @@ export function BookingFieldsEditor({
 						</h4>
 					</div>
 					<div className="border rounded-lg bg-white overflow-hidden shadow-sm">
-						<Table>
+						<Table className="table-fixed w-full">
 							<TableHeader>
-								<TableRow className="bg-slate-50/50">
-									<TableHead className="w-[30%] max-w-[250px] font-semibold">
+								<TableRow className="bg-slate-50/70">
+									<TableHead className="w-[28%] font-semibold text-slate-900">
 										Field Name
 									</TableHead>
-									<TableHead className="w-[35%] font-semibold">
+									<TableHead className="w-[36%] font-semibold text-slate-900">
 										User Value
 									</TableHead>
-									<TableHead className="w-[35%] font-semibold">
+									<TableHead className="w-[36%] font-semibold text-slate-900">
 										Admin Value
 									</TableHead>
 								</TableRow>
@@ -193,16 +196,16 @@ export function BookingFieldsEditor({
 							</h4>
 						</div>
 						<div className="border border-blue-100 rounded-lg bg-blue-50/10 overflow-hidden shadow-sm">
-							<Table>
+							<Table className="table-fixed w-full">
 								<TableHeader>
 									<TableRow className="bg-blue-50/50">
-										<TableHead className="w-[30%] max-w-[250px] font-semibold text-blue-900 border-blue-100">
+										<TableHead className="w-[28%] font-semibold text-blue-900 border-blue-100">
 											Field Name
 										</TableHead>
-										<TableHead className="w-[35%] font-semibold text-blue-900 border-blue-100">
+										<TableHead className="w-[36%] font-semibold text-blue-900 border-blue-100">
 											User Value
 										</TableHead>
-										<TableHead className="w-[35%] font-semibold text-blue-900 border-blue-100">
+										<TableHead className="w-[36%] font-semibold text-blue-900 border-blue-100">
 											Admin Value
 										</TableHead>
 									</TableRow>
@@ -236,58 +239,92 @@ function ResponseRow({
 	isPaymentStage = false,
 }: {
 	resp: BookingResponse;
-	editedValue: string | null;
-	onValueChange: (id: number, val: string) => void;
+	editedValue: string | null | undefined;
+	onValueChange: (id: number, val: string | null) => void;
 	isPaymentStage?: boolean;
 }) {
-	const isEdited =
-		editedValue !== null && editedValue !== (resp.adminValue || resp.value);
+	const userVal = resp.value || "";
+	const currentVal = editedValue ?? "";
+	const isLong = isLongFieldValue(userVal) || isLongFieldValue(currentVal);
 
 	return (
 		<TableRow
-			className={
-				isPaymentStage ? "hover:bg-blue-50/30 border-blue-50" : ""
-			}
+			className={cn(
+				"align-top",
+				isPaymentStage
+					? "hover:bg-blue-50/30 border-blue-50"
+					: "hover:bg-slate-50/40",
+			)}
 		>
-			<TableCell className="font-medium text-slate-700 max-w-[250px] overflow-hidden wrap-break-word whitespace-normal">
-				{resp.fieldName}
-				{(resp.iteration > 0 || resp.parentId !== null) && (
-					<span className="ml-1 text-xs text-slate-400">
-						(#{resp.iteration + 1})
-					</span>
-				)}
+			<TableCell className="align-top py-3.5 px-4 font-medium text-slate-700 max-w-0 break-words whitespace-normal">
+				<div className="space-y-1">
+					<div className="font-semibold text-slate-800 leading-snug">
+						{resp.fieldName}
+						{(resp.iteration > 0 || resp.parentId !== null) && (
+							<span className="ml-1.5 text-xs font-normal text-slate-400">
+								(#{resp.iteration + 1})
+							</span>
+						)}
+					</div>
+					<div className="text-[11px] text-slate-400 uppercase tracking-wider">
+						{resp.fieldType}
+					</div>
+				</div>
 			</TableCell>
-			<TableCell>
+
+			<TableCell className="align-top py-3.5 px-4 max-w-0">
 				{resp.fieldType === "file" ? (
 					<FileViewer
 						responseId={resp.responseId}
 						name={resp.fieldName}
 						hasFile={!!resp.value}
 					/>
+				) : !userVal ? (
+					<span className="text-slate-400 italic text-sm">—</span>
 				) : (
-					<span className="text-slate-600 break-all">
-						{resp.value || "—"}
-					</span>
+					<div
+						className={cn(
+							"rounded-md border border-slate-200/80 bg-slate-50 text-slate-800 break-words leading-relaxed",
+							isLong
+								? "text-sm min-h-[80px] max-h-48 p-2.5 overflow-y-auto whitespace-pre-wrap"
+								: "text-sm h-9 px-3 flex items-center whitespace-normal",
+						)}
+					>
+						{userVal}
+					</div>
 				)}
 			</TableCell>
-			<TableCell>
-				<div className="flex items-center gap-2">
-					<Input
-						className={`h-9 ${
-							isEdited
-								? "border-red-600 focus-visible:ring-red-600"
-								: editedValue !== null
-									? "border-blue-200 bg-blue-50/10 focus:border-blue-500"
-									: ""
-						}`}
-						value={editedValue ?? ""}
-						placeholder={resp.value || "Enter value..."}
-						disabled={resp.fieldType === "file"}
+
+			<TableCell className="align-top py-3.5 px-4 max-w-0">
+				{resp.fieldType === "file" ? (
+					<span className="text-xs text-slate-400 italic">
+						File responses cannot be overridden
+					</span>
+				) : isLong ? (
+					<Textarea
+						className="min-h-[80px] max-h-48 resize-y text-sm leading-relaxed border-slate-200 bg-white"
+						value={currentVal}
+						placeholder={userVal || "Enter override..."}
 						onChange={(e) =>
-							onValueChange(resp.responseId, e.target.value)
+							onValueChange(
+								resp.responseId,
+								e.target.value === "" ? null : e.target.value,
+							)
 						}
 					/>
-				</div>
+				) : (
+					<Input
+						className="h-9 text-sm border-slate-200 bg-white"
+						value={currentVal}
+						placeholder={userVal || "Enter override..."}
+						onChange={(e) =>
+							onValueChange(
+								resp.responseId,
+								e.target.value === "" ? null : e.target.value,
+							)
+						}
+					/>
+				)}
 			</TableCell>
 		</TableRow>
 	);

@@ -330,7 +330,7 @@ export const acceptBooking = createServerFn({ method: "POST" })
 			? new Date(access.booking.createdAt).toLocaleDateString("en-IN")
 			: new Date().toLocaleDateString("en-IN");
 
-		const totalAmount = parsed.price + parsed.gst;
+		const totalAmount = Number((parsed.price + parsed.gst).toFixed(2));
 
 		if (userEmail) {
 			await sendEmail({

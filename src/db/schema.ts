@@ -2,6 +2,7 @@ import {
 	boolean,
 	integer,
 	jsonb,
+	numeric,
 	pgEnum,
 	pgTable,
 	serial,
@@ -199,8 +200,8 @@ export const bookings = pgTable("bookings", {
 		.notNull()
 		.references(() => equipments.id, { onDelete: "cascade" }),
 	status: bookingStatus().notNull().default("pending"),
-	price: integer(),
-	gst: integer(),
+	price: numeric({ precision: 10, scale: 2, mode: "number" }),
+	gst: numeric({ precision: 10, scale: 2, mode: "number" }),
 	remarks: text(),
 	rejectionReason: text("rejection_reason"),
 	createdAt: timestamp("created_at").defaultNow(),

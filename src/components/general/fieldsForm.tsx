@@ -27,11 +27,12 @@ import {
 } from "react-hook-form";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Field,
-	FieldLabel,
 	FieldContent,
 	FieldError as UIFieldError,
+	FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
@@ -42,7 +43,8 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
-import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
+import { isLongFieldValue } from "./fieldResponses";
 
 import type { Field as FieldType } from "@/services/field";
 
@@ -89,8 +91,8 @@ function ValueShowcase({ field, value }: { field: FieldType; value: unknown }) {
 
 	if (field.type === "group" && Array.isArray(value)) {
 		return (
-			<div className="space-y-4 col-span-full">
-				<div className="text-sm font-bold text-slate-800 uppercase tracking-tight">
+			<div className="space-y-4 col-span-full min-w-0 max-w-full">
+				<div className="text-sm font-bold text-slate-800 uppercase tracking-tight break-words">
 					{field.name}
 				</div>
 				<div className="space-y-6 pl-4 border-l-2 border-blue-50">
@@ -98,28 +100,50 @@ function ValueShowcase({ field, value }: { field: FieldType; value: unknown }) {
 						value.map((item, idx) => (
 							<div
 								key={`${field.id}_item_${idx}`}
-								className="space-y-3"
+								className="space-y-3 min-w-0 max-w-full"
 							>
 								<div className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">
 									Item {idx + 1}
 								</div>
 								<div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
-									{field.children?.map((child) => (
-										<div
-											key={child.id}
-											className="space-y-1"
-										>
-											<div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-												{child.name}
-											</div>
-											<div className="text-base font-semibold text-slate-900">
-												{formatValue(
-													child,
-													item[child.id],
+									{field.children?.map((child) => {
+										const formatted = formatValue(
+											child,
+											item[child.id],
+										);
+										const rawStr =
+											item[child.id] !== undefined &&
+											item[child.id] !== null
+												? String(item[child.id])
+												: "";
+										const isChildLong =
+											isLongFieldValue(rawStr);
+
+										return (
+											<div
+												key={child.id}
+												className={cn(
+													"space-y-1 min-w-0 max-w-full",
+													isChildLong
+														? "sm:col-span-2"
+														: "col-span-1",
+												)}
+											>
+												<div className="text-xs font-semibold text-slate-500 uppercase tracking-wider break-words">
+													{child.name}
+												</div>
+												{isChildLong ? (
+													<div className="text-sm text-slate-800 bg-slate-50 p-2.5 rounded-md border border-slate-100 break-words whitespace-pre-wrap leading-relaxed max-h-36 overflow-y-auto">
+														{formatted}
+													</div>
+												) : (
+													<div className="text-base font-semibold text-slate-900 break-words">
+														{formatted}
+													</div>
 												)}
 											</div>
-										</div>
-									))}
+										);
+									})}
 								</div>
 							</div>
 						))
@@ -133,14 +157,29 @@ function ValueShowcase({ field, value }: { field: FieldType; value: unknown }) {
 		);
 	}
 
+	const formatted = formatValue(field, value);
+	const rawStr = value !== undefined && value !== null ? String(value) : "";
+	const isLong = isLongFieldValue(rawStr);
+
 	return (
-		<div className="space-y-1">
-			<div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+		<div
+			className={cn(
+				"space-y-1 min-w-0 max-w-full",
+				isLong ? "sm:col-span-2" : "col-span-1",
+			)}
+		>
+			<div className="text-xs font-semibold text-slate-500 uppercase tracking-wider break-words">
 				{field.name}
 			</div>
-			<div className="text-base font-semibold text-slate-900">
-				{formatValue(field, value)}
-			</div>
+			{isLong ? (
+				<div className="text-sm text-slate-800 bg-slate-50 p-3 rounded-lg border border-slate-200/80 break-words whitespace-pre-wrap leading-relaxed max-h-40 overflow-y-auto">
+					{formatted}
+				</div>
+			) : (
+				<div className="text-base font-semibold text-slate-900 break-words">
+					{formatted}
+				</div>
+			)}
 		</div>
 	);
 }

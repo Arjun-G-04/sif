@@ -7,6 +7,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 interface FieldResponse {
 	responseId: number;
@@ -37,6 +38,85 @@ function getFileUrl(responseId: number, download = false): string {
 	return `${baseUrl}/api/file/?${params.toString()}`;
 }
 
+export function isLongFieldValue(val: string | null | undefined): boolean {
+	if (!val) return false;
+	return val.length > 80 || val.includes("\n");
+}
+
+export function ResponseValueDisplay({
+	value,
+	fieldType,
+	responseId,
+	fieldName,
+	adminValue,
+	className,
+}: {
+	value: string | null | undefined;
+	fieldType?: string;
+	responseId?: number;
+	fieldName?: string;
+	adminValue?: string | null;
+	className?: string;
+}) {
+	if (fieldType === "file") {
+		return (
+			<FileViewer
+				responseId={responseId ?? 0}
+				name={fieldName ?? "File"}
+				hasFile={Boolean(value)}
+			/>
+		);
+	}
+
+	if (adminValue) {
+		return (
+			<div
+				className={cn(
+					"flex flex-col gap-2 max-w-full min-w-0",
+					className,
+				)}
+			>
+				<div className="space-y-1">
+					<span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">
+						Original:
+					</span>
+					<div className="text-slate-400 text-xs line-through decoration-slate-300 break-words whitespace-pre-wrap rounded bg-slate-50 p-2 border border-slate-100 max-h-28 overflow-y-auto">
+						{value || "—"}
+					</div>
+				</div>
+				<div className="space-y-1">
+					<span className="text-[10px] text-blue-600 font-semibold uppercase tracking-wider block">
+						Admin Override:
+					</span>
+					<div className="text-blue-900 font-medium bg-blue-50/80 p-2.5 rounded-md text-sm border border-blue-200/60 break-words whitespace-pre-wrap leading-relaxed max-h-36 overflow-y-auto">
+						{adminValue}
+					</div>
+				</div>
+			</div>
+		);
+	}
+
+	if (!value) {
+		return <span className="text-slate-400 italic text-sm">—</span>;
+	}
+
+	const isLong = isLongFieldValue(value);
+
+	return (
+		<div
+			className={cn(
+				"text-slate-800 break-words leading-relaxed",
+				isLong
+					? "text-sm rounded-md bg-slate-50 p-2.5 border border-slate-200/70 max-h-36 overflow-y-auto whitespace-pre-wrap"
+					: "text-sm whitespace-normal",
+				className,
+			)}
+		>
+			{value}
+		</div>
+	);
+}
+
 export function FieldResponsesDisplay({
 	responses,
 	emptyMessage = "No field responses.",
@@ -51,24 +131,32 @@ export function FieldResponsesDisplay({
 
 	return (
 		<div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-			{responses.map((resp) => (
-				<div key={resp.responseId} className="space-y-1">
-					<p className="text-sm font-medium text-slate-500">
-						{resp.fieldName}
-					</p>
-					{resp.fieldType === "file" ? (
-						<FileViewer
-							responseId={resp.responseId}
-							name={resp.fieldName}
-							hasFile={!!resp.value}
-						/>
-					) : (
-						<p className="text-slate-900 border border-slate-100 bg-slate-50/30 p-2 rounded text-sm">
-							{resp.value || "—"}
+			{responses.map((resp) => {
+				const isLong = isLongFieldValue(resp.value);
+
+				return (
+					<div
+						key={resp.responseId}
+						className={cn(
+							"space-y-1 min-w-0 max-w-full",
+							isLong ? "md:col-span-2" : "col-span-1",
+						)}
+					>
+						<p
+							className="text-sm font-medium text-slate-500 truncate"
+							title={resp.fieldName}
+						>
+							{resp.fieldName}
 						</p>
-					)}
-				</div>
-			))}
+						<ResponseValueDisplay
+							value={resp.value}
+							fieldType={resp.fieldType}
+							responseId={resp.responseId}
+							fieldName={resp.fieldName}
+						/>
+					</div>
+				);
+			})}
 		</div>
 	);
 }

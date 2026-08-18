@@ -120,6 +120,13 @@
       "when": 1782981005074,
       "tag": "0016_famous_praxagora",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1787056065912,
+      "tag": "0017_wide_shotgun",
+      "breakpoints": true
     }
   ]
 }
