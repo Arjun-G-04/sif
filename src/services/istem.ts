@@ -10,11 +10,15 @@ import {
 } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth";
 import { createServerFn } from "@tanstack/react-start";
+import {
+	ISTEM_BASE_URL,
+	formatToLocalIstemTime,
+	getErrorMessage,
+	istemFetch,
+} from "@/lib/istem";
 import { and, eq, gt, gte, isNull, isNotNull, or, sql } from "drizzle-orm";
 import * as z from "zod";
 import { getFieldResponses } from "./field/helpers";
-
-const ISTEM_BASE_URL = "https://istemstaging.iisc.ac.in/istem1";
 
 // Helper to check token validity and return it
 async function getValidIstemToken() {
@@ -37,23 +41,6 @@ async function getValidIstemToken() {
 	return config.istemToken;
 }
 
-// Helper to format Date into Asia/Kolkata (IST) timezone formatted string "YYYY-MM-DD HH:mm:ss"
-function formatToLocalIstemTime(date: Date): string {
-	const formatter = new Intl.DateTimeFormat("en-CA", {
-		timeZone: "Asia/Kolkata",
-		year: "numeric",
-		month: "2-digit",
-		day: "2-digit",
-		hour: "2-digit",
-		minute: "2-digit",
-		second: "2-digit",
-		hour12: false,
-	});
-	const parts = formatter.formatToParts(date);
-	const r = (type: string) => parts.find((p) => p.type === type)?.value;
-	return `${r("year")}-${r("month")}-${r("day")} ${r("hour")}:${r("minute")}:${r("second")}`;
-}
-
 // Authenticate server function
 const AuthenticateInput = z.object({
 	username: z.string().min(1, "Username required"),
@@ -70,23 +57,52 @@ export const authenticateIstem = createServerFn({ method: "POST" })
 		form.append("username", username);
 		form.append("password", password);
 
-		const response = await fetch(`${ISTEM_BASE_URL}/auth/token`, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/x-www-form-urlencoded",
-			},
-			body: form.toString(),
-		});
-
-		if (!response.ok) {
-			throw new Error(`Auth failed with status ${response.status}`);
+		let response: Awaited<ReturnType<typeof istemFetch>>;
+		try {
+			response = await istemFetch(`${ISTEM_BASE_URL}/auth/token`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+				},
+				body: form.toString(),
+			});
+		} catch (err) {
+			throw new Error(
+				`Failed to connect to I-STEM server: ${getErrorMessage(err)}`,
+			);
 		}
 
-		const resData = await response.json();
-		if (resData.result !== "SUCCESS" || !resData.message?.access_token) {
+		const responseText = await response.text();
+
+		if (!response.ok) {
 			throw new Error(
-				resData.message || "Invalid credentials or login failed.",
+				`Auth failed with status ${response.status}: ${responseText || response.statusText}`,
 			);
+		}
+
+		let resData: {
+			result?: string;
+			message?: { access_token?: string; expires_in?: number } | string;
+		};
+		try {
+			resData = JSON.parse(responseText);
+		} catch {
+			throw new Error(
+				`Invalid JSON response received from I-STEM server: ${responseText}`,
+			);
+		}
+
+		if (
+			resData.result !== "SUCCESS" ||
+			!resData.message ||
+			typeof resData.message === "string" ||
+			!resData.message.access_token
+		) {
+			const errorMsg =
+				typeof resData.message === "string"
+					? resData.message
+					: "Invalid credentials or login failed.";
+			throw new Error(errorMsg);
 		}
 
 		const token = resData.message.access_token;
@@ -637,7 +653,7 @@ export const syncUsers = createServerFn({ method: "POST" }).handler(
 					form.append("id", user.istemId);
 				}
 
-				const response = await fetch(url, {
+				const response = await istemFetch(url, {
 					method: "POST",
 					headers: {
 						Token: token,
@@ -682,8 +698,7 @@ export const syncUsers = createServerFn({ method: "POST" }).handler(
 
 				successCount++;
 			} catch (err) {
-				const errorMessage =
-					err instanceof Error ? err.message : String(err);
+				const errorMessage = getErrorMessage(err);
 				failCount++;
 				errors.push(`User ID ${row.user.id}: ${errorMessage}`);
 			}
@@ -1019,7 +1034,7 @@ export const syncEquipments = createServerFn({ method: "POST" }).handler(
 					form.append("ignore_facility_timings", "1");
 				}
 
-				const response = await fetch(url, {
+				const response = await istemFetch(url, {
 					method: "POST",
 					headers: {
 						Token: token,
@@ -1068,7 +1083,7 @@ export const syncEquipments = createServerFn({ method: "POST" }).handler(
 						formatToLocalIstemTime(new Date()),
 					);
 
-					await fetch(
+					await istemFetch(
 						`${ISTEM_BASE_URL}/api/equipment-status-update`,
 						{
 							method: "POST",
@@ -1092,8 +1107,7 @@ export const syncEquipments = createServerFn({ method: "POST" }).handler(
 
 				successCount++;
 			} catch (err) {
-				const errorMessage =
-					err instanceof Error ? err.message : String(err);
+				const errorMessage = getErrorMessage(err);
 				failCount++;
 				errors.push(`Equipment ID ${eqRow.id}: ${errorMessage}`);
 			}
@@ -1232,7 +1246,7 @@ export const syncBookings = createServerFn({ method: "POST" }).handler(
 					cancelForm.append("cancelled", "true");
 					cancelForm.append("cancelled_by", "admin");
 
-					const cancelRes = await fetch(
+					const cancelRes = await istemFetch(
 						`${ISTEM_BASE_URL}/api/cancel-booking`,
 						{
 							method: "POST",
@@ -1680,7 +1694,7 @@ export const syncBookings = createServerFn({ method: "POST" }).handler(
 					),
 				);
 
-				const response = await fetch(
+				const response = await istemFetch(
 					`${ISTEM_BASE_URL}/api/create-booking`,
 					{
 						method: "POST",
@@ -1726,8 +1740,7 @@ export const syncBookings = createServerFn({ method: "POST" }).handler(
 
 				successCount++;
 			} catch (err) {
-				const errorMessage =
-					err instanceof Error ? err.message : String(err);
+				const errorMessage = getErrorMessage(err);
 				failCount++;
 				errors.push(`Booking ID ${row.booking.id}: ${errorMessage}`);
 			}
