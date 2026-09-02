@@ -1,6 +1,6 @@
 import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
 import { hash } from "bcrypt";
-import { eq, and } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import * as z from "zod";
 import { sendEmail } from "@/lib/email";
 import { db } from "../db";
@@ -125,7 +125,8 @@ export const getRegistrations = createServerFn({ method: "GET" }).handler(
 				accepted: registrations.accepted,
 				rejectionReason: registrations.rejectionReason,
 			})
-			.from(registrations);
+			.from(registrations)
+			.orderBy(desc(registrations.id));
 	},
 );
 

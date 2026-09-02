@@ -9,7 +9,7 @@ import {
 import { requireOfficeUser, requireUser } from "@/lib/auth";
 import { safeParseAndThrow } from "@/lib/utils";
 import { createServerFn } from "@tanstack/react-start";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import * as z from "zod";
 import { getFieldResponses, parseFieldResponses } from "./field";
 import { sendEmail } from "@/lib/email";
@@ -199,7 +199,8 @@ export const getBookings = createServerFn({ method: "GET" }).handler(
 				})
 				.from(bookings)
 				.leftJoin(users, eq(bookings.userId, users.id))
-				.leftJoin(equipments, eq(bookings.equipmentId, equipments.id));
+				.leftJoin(equipments, eq(bookings.equipmentId, equipments.id))
+				.orderBy(desc(bookings.id));
 		}
 
 		return await db
@@ -221,7 +222,8 @@ export const getBookings = createServerFn({ method: "GET" }).handler(
 				),
 			)
 			.leftJoin(users, eq(bookings.userId, users.id))
-			.leftJoin(equipments, eq(bookings.equipmentId, equipments.id));
+			.leftJoin(equipments, eq(bookings.equipmentId, equipments.id))
+			.orderBy(desc(bookings.id));
 	},
 );
 
