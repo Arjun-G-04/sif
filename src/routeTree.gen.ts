@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ForgotRouteImport } from './routes/forgot'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RegistrationIndexRouteImport } from './routes/registration/index'
@@ -34,6 +35,11 @@ import { Route as OfficeBookingViewBookingIdRouteImport } from './routes/office/
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForgotRoute = ForgotRouteImport.update({
@@ -146,6 +152,7 @@ const OfficeBookingViewBookingIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/forgot': typeof ForgotRoute
+  '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
   '/book/$eqId': typeof BookEqIdRoute
   '/bookings/$bookingId': typeof BookingsBookingIdRoute
@@ -169,6 +176,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/forgot': typeof ForgotRoute
+  '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
   '/book/$eqId': typeof BookEqIdRoute
   '/bookings/$bookingId': typeof BookingsBookingIdRoute
@@ -193,6 +201,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/forgot': typeof ForgotRoute
+  '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
   '/book/$eqId': typeof BookEqIdRoute
   '/bookings/$bookingId': typeof BookingsBookingIdRoute
@@ -218,6 +227,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/forgot'
+    | '/profile'
     | '/reset-password'
     | '/book/$eqId'
     | '/bookings/$bookingId'
@@ -241,6 +251,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/forgot'
+    | '/profile'
     | '/reset-password'
     | '/book/$eqId'
     | '/bookings/$bookingId'
@@ -264,6 +275,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/forgot'
+    | '/profile'
     | '/reset-password'
     | '/book/$eqId'
     | '/bookings/$bookingId'
@@ -288,6 +300,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ForgotRoute: typeof ForgotRoute
+  ProfileRoute: typeof ProfileRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   BookEqIdRoute: typeof BookEqIdRoute
   BookingsBookingIdRoute: typeof BookingsBookingIdRoute
@@ -316,6 +329,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forgot': {
@@ -464,6 +484,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ForgotRoute: ForgotRoute,
+  ProfileRoute: ProfileRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   BookEqIdRoute: BookEqIdRoute,
   BookingsBookingIdRoute: BookingsBookingIdRoute,

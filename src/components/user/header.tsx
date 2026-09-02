@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { User } from "lucide-react";
 import { ArrowLeftIcon, LogoutIcon } from "@/components/svgs";
 import { Button } from "@/components/ui/button";
 import { type AuthPayload, publicSignOut } from "@/lib/auth";
@@ -47,6 +48,17 @@ export function Header({
 						</span>
 						<span className="text-slate-500 text-xs">User</span>
 					</div>
+					<Button
+						asChild
+						variant="outline"
+						size="sm"
+						className="gap-2 rounded-lg border-slate-200 hover:bg-slate-50 transition-all font-medium"
+					>
+						<Link to="/profile">
+							<User className="w-4 h-4 text-slate-500" />
+							<span>Profile</span>
+						</Link>
+					</Button>
 					<Button
 						variant="outline"
 						size="sm"
