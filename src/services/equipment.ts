@@ -49,9 +49,39 @@ export const getEquipmentNameById = createServerFn({ method: "GET" })
 		return equipment.name ?? null;
 	});
 
+const trimmedString = z.string().trim().default("");
+
+const urlValidator = z
+	.string()
+	.trim()
+	.default("")
+	.refine(
+		(val) => {
+			if (!val) return true;
+			try {
+				const url = new URL(val);
+				return url.protocol === "http:" || url.protocol === "https:";
+			} catch {
+				return false;
+			}
+		},
+		{
+			message:
+				"Invalid website URL format (must start with http:// or https://)",
+		},
+	);
+
 const CreateEquipmentInput = z.object({
-	name: z.string().min(1, "Equipment name is required"),
-	code: z.string().min(1, "Equipment code is required"),
+	name: z.string().trim().min(1, "Equipment name is required"),
+	code: z.string().trim().min(1, "Equipment code is required"),
+	make: trimmedString,
+	model: trimmedString,
+	departmentLab: trimmedString,
+	usageRate: trimmedString,
+	serialNumber: trimmedString,
+	location: trimmedString,
+	websiteUrl: urlValidator,
+	description: trimmedString,
 });
 
 export const createEquipment = createServerFn({ method: "POST" })
@@ -63,10 +93,8 @@ export const createEquipment = createServerFn({ method: "POST" })
 		await db.insert(equipments).values(parsedData);
 	});
 
-const UpdateEquipmentInput = z.object({
+const UpdateEquipmentInput = CreateEquipmentInput.extend({
 	id: z.number().int(),
-	name: z.string().min(1, "Equipment name is required"),
-	code: z.string().min(1, "Equipment code is required"),
 });
 
 export const updateEquipment = createServerFn({ method: "POST" })
@@ -74,14 +102,15 @@ export const updateEquipment = createServerFn({ method: "POST" })
 	.handler(async ({ data }) => {
 		await requireAdmin();
 		const parsedData = safeParseAndThrow(data, UpdateEquipmentInput);
+		const { id, ...updates } = parsedData;
 
 		await db
 			.update(equipments)
 			.set({
-				name: parsedData.name,
-				code: parsedData.code,
+				...updates,
+				updatedAt: new Date(),
 			})
-			.where(eq(equipments.id, parsedData.id));
+			.where(eq(equipments.id, id));
 	});
 
 const ToggleEquipmentActiveInput = z.object({

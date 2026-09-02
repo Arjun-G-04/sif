@@ -127,6 +127,13 @@
       "when": 1787056065912,
       "tag": "0017_wide_shotgun",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1787663528264,
+      "tag": "0018_even_grey_gargoyle",
+      "breakpoints": true
     }
   ]
 }

@@ -14,7 +14,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/spinner";
+import { Textarea } from "@/components/ui/textarea";
 import {
 	createEquipment,
 	type Equipment,
@@ -26,41 +28,81 @@ interface EquipmentDialogProps {
 	trigger?: React.ReactNode;
 }
 
+function isValidUrl(val: string): boolean {
+	if (!val.trim()) return true;
+	try {
+		const url = new URL(val.trim());
+		return url.protocol === "http:" || url.protocol === "https:";
+	} catch {
+		return false;
+	}
+}
+
+interface EquipmentFormData {
+	name: string;
+	code: string;
+	make: string;
+	model: string;
+	departmentLab: string;
+	usageRate: string;
+	serialNumber: string;
+	location: string;
+	websiteUrl: string;
+	description: string;
+}
+
+const emptyFormData: EquipmentFormData = {
+	name: "",
+	code: "",
+	make: "",
+	model: "",
+	departmentLab: "",
+	usageRate: "",
+	serialNumber: "",
+	location: "",
+	websiteUrl: "",
+	description: "",
+};
+
 export function EquipmentDialog({ equipment, trigger }: EquipmentDialogProps) {
 	const isEdit = !!equipment;
 	const [open, setOpen] = useState(false);
-	const [name, setName] = useState(equipment?.name || "");
-	const [code, setCode] = useState(equipment?.code || "");
+	const [formData, setFormData] = useState<EquipmentFormData>(emptyFormData);
+	const baseId = useId();
+
+	const updateField = (field: keyof EquipmentFormData, value: string) => {
+		setFormData((prev) => ({ ...prev, [field]: value }));
+	};
 
 	const resetForm = useCallback(() => {
-		setName("");
-		setCode("");
+		setFormData(emptyFormData);
 	}, []);
 
 	useEffect(() => {
 		if (open) {
 			if (equipment) {
-				setName(equipment.name);
-				setCode(equipment.code);
+				setFormData({
+					name: equipment.name || "",
+					code: equipment.code || "",
+					make: equipment.make || "",
+					model: equipment.model || "",
+					departmentLab: equipment.departmentLab || "",
+					usageRate: equipment.usageRate || "",
+					serialNumber: equipment.serialNumber || "",
+					location: equipment.location || "",
+					websiteUrl: equipment.websiteUrl || "",
+					description: equipment.description || "",
+				});
 			} else {
 				resetForm();
 			}
 		}
 	}, [open, equipment, resetForm]);
 
-	const nameId = useId();
-	const codeId = useId();
-
 	const queryClient = useQueryClient();
 
 	const createMutation = useMutation({
-		mutationFn: () =>
-			createEquipment({
-				data: {
-					name,
-					code,
-				},
-			}),
+		mutationFn: () => createEquipment({ data: formData }),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["equipments"] });
 			toast.success("Equipment created successfully");
@@ -78,8 +120,7 @@ export function EquipmentDialog({ equipment, trigger }: EquipmentDialogProps) {
 			return updateEquipment({
 				data: {
 					id: equipment.id,
-					name,
-					code,
+					...formData,
 				},
 			});
 		},
@@ -94,12 +135,18 @@ export function EquipmentDialog({ equipment, trigger }: EquipmentDialogProps) {
 	});
 
 	function handleSubmit() {
-		if (!name.trim()) {
+		if (!formData.name.trim()) {
 			toast.error("Equipment name is required");
 			return;
 		}
-		if (!code.trim()) {
+		if (!formData.code.trim()) {
 			toast.error("Equipment code is required");
+			return;
+		}
+		if (formData.websiteUrl.trim() && !isValidUrl(formData.websiteUrl)) {
+			toast.error(
+				"Please enter a valid website URL (starting with http:// or https://)",
+			);
 			return;
 		}
 		if (isEdit) {
@@ -129,7 +176,7 @@ export function EquipmentDialog({ equipment, trigger }: EquipmentDialogProps) {
 					</Button>
 				)}
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-[425px]">
+			<DialogContent className="sm:max-w-[650px] max-h-[90vh] flex flex-col">
 				<DialogHeader>
 					<DialogTitle>
 						{isEdit ? "Edit Equipment" : "Add New Equipment"}
@@ -140,25 +187,160 @@ export function EquipmentDialog({ equipment, trigger }: EquipmentDialogProps) {
 							: "Create a new equipment entry."}
 					</DialogDescription>
 				</DialogHeader>
-				<div className="space-y-4 py-4">
-					<div className="space-y-2">
-						<Label htmlFor={nameId}>Equipment Name</Label>
-						<Input
-							id={nameId}
-							value={name}
-							onChange={(e) => setName(e.target.value)}
-						/>
+				<ScrollArea className="flex-1 max-h-[calc(90vh-180px)] pr-3">
+					<div className="space-y-4 py-2">
+						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+							<div className="space-y-2">
+								<Label htmlFor={`${baseId}-name`}>
+									Equipment Name{" "}
+									<span className="text-red-500">*</span>
+								</Label>
+								<Input
+									id={`${baseId}-name`}
+									value={formData.name}
+									placeholder="e.g. Scanning Electron Microscope"
+									onChange={(e) =>
+										updateField("name", e.target.value)
+									}
+								/>
+							</div>
+							<div className="space-y-2">
+								<Label htmlFor={`${baseId}-code`}>
+									Equipment Code{" "}
+									<span className="text-red-500">*</span>
+								</Label>
+								<Input
+									id={`${baseId}-code`}
+									value={formData.code}
+									placeholder="e.g. SEM-01"
+									onChange={(e) =>
+										updateField("code", e.target.value)
+									}
+								/>
+							</div>
+						</div>
+
+						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+							<div className="space-y-2">
+								<Label htmlFor={`${baseId}-make`}>Make</Label>
+								<Input
+									id={`${baseId}-make`}
+									value={formData.make}
+									placeholder="e.g. Carl Zeiss"
+									onChange={(e) =>
+										updateField("make", e.target.value)
+									}
+								/>
+							</div>
+							<div className="space-y-2">
+								<Label htmlFor={`${baseId}-model`}>Model</Label>
+								<Input
+									id={`${baseId}-model`}
+									value={formData.model}
+									placeholder="e.g. EVO 18"
+									onChange={(e) =>
+										updateField("model", e.target.value)
+									}
+								/>
+							</div>
+						</div>
+
+						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+							<div className="space-y-2">
+								<Label htmlFor={`${baseId}-departmentLab`}>
+									Department / Lab
+								</Label>
+								<Input
+									id={`${baseId}-departmentLab`}
+									value={formData.departmentLab}
+									placeholder="e.g. Central Instrumentation Facility"
+									onChange={(e) =>
+										updateField(
+											"departmentLab",
+											e.target.value,
+										)
+									}
+								/>
+							</div>
+							<div className="space-y-2">
+								<Label htmlFor={`${baseId}-location`}>
+									Location
+								</Label>
+								<Input
+									id={`${baseId}-location`}
+									value={formData.location}
+									placeholder="e.g. Room 102, Ground Floor"
+									onChange={(e) =>
+										updateField("location", e.target.value)
+									}
+								/>
+							</div>
+						</div>
+
+						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+							<div className="space-y-2">
+								<Label htmlFor={`${baseId}-usageRate`}>
+									Usage Rate
+								</Label>
+								<Input
+									id={`${baseId}-usageRate`}
+									value={formData.usageRate}
+									placeholder="e.g. ₹500/hr or $20/sample"
+									onChange={(e) =>
+										updateField("usageRate", e.target.value)
+									}
+								/>
+							</div>
+							<div className="space-y-2">
+								<Label htmlFor={`${baseId}-serialNumber`}>
+									Serial Number
+								</Label>
+								<Input
+									id={`${baseId}-serialNumber`}
+									value={formData.serialNumber}
+									placeholder="e.g. SN-8923412"
+									onChange={(e) =>
+										updateField(
+											"serialNumber",
+											e.target.value,
+										)
+									}
+								/>
+							</div>
+						</div>
+
+						<div className="space-y-2">
+							<Label htmlFor={`${baseId}-websiteUrl`}>
+								Website URL
+							</Label>
+							<Input
+								id={`${baseId}-websiteUrl`}
+								type="url"
+								value={formData.websiteUrl}
+								placeholder="https://example.com/equipment-details"
+								onChange={(e) =>
+									updateField("websiteUrl", e.target.value)
+								}
+							/>
+						</div>
+
+						<div className="space-y-2">
+							<Label htmlFor={`${baseId}-description`}>
+								Description
+							</Label>
+							<Textarea
+								id={`${baseId}-description`}
+								value={formData.description}
+								placeholder="Detailed specifications, capabilities, and guidelines..."
+								rows={3}
+								onChange={(e) =>
+									updateField("description", e.target.value)
+								}
+							/>
+						</div>
 					</div>
-					<div className="space-y-2">
-						<Label htmlFor={codeId}>Equipment Code</Label>
-						<Input
-							id={codeId}
-							value={code}
-							onChange={(e) => setCode(e.target.value)}
-						/>
-					</div>
-				</div>
-				<DialogFooter>
+				</ScrollArea>
+				<DialogFooter className="pt-2">
 					<Button onClick={handleSubmit} disabled={isPending}>
 						{isPending ? (
 							<>

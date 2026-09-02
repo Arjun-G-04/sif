@@ -853,6 +853,30 @@ function SyncPage() {
 															<SelectItem value="code">
 																Code
 															</SelectItem>
+															<SelectItem value="make">
+																Make
+															</SelectItem>
+															<SelectItem value="model">
+																Model
+															</SelectItem>
+															<SelectItem value="departmentLab">
+																Department / Lab
+															</SelectItem>
+															<SelectItem value="usageRate">
+																Usage Rate
+															</SelectItem>
+															<SelectItem value="serialNumber">
+																Serial Number
+															</SelectItem>
+															<SelectItem value="location">
+																Location
+															</SelectItem>
+															<SelectItem value="websiteUrl">
+																Website URL
+															</SelectItem>
+															<SelectItem value="description">
+																Description
+															</SelectItem>
 															<SelectItem value="active">
 																Active
 															</SelectItem>

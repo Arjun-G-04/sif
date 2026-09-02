@@ -333,10 +333,11 @@ function resolveFieldValue(
 		return defaults[staticKey] || "-";
 	}
 	if (entityPrefix === "equipment" && localRecord) {
-		if (mappedFieldId === "name") return localRecord.name || "-";
-		if (mappedFieldId === "code") return localRecord.code || "-";
 		if (mappedFieldId === "active")
 			return localRecord.active ? "Active" : "Inactive";
+		if (mappedFieldId && mappedFieldId in localRecord) {
+			return localRecord[mappedFieldId] || "-";
+		}
 	}
 	if (mappedFieldId && mappedFieldId !== "default") {
 		const response = fieldResponses.find(
@@ -799,7 +800,7 @@ export const syncEquipments = createServerFn({ method: "POST" }).handler(
 						mapping,
 						defaults,
 						"equipment_make",
-						null,
+						eqRow.make || null,
 						"equipment",
 						eqRow,
 					),
@@ -811,7 +812,7 @@ export const syncEquipments = createServerFn({ method: "POST" }).handler(
 						mapping,
 						defaults,
 						"equipment_model",
-						null,
+						eqRow.model || null,
 						"equipment",
 						eqRow,
 					),
@@ -823,7 +824,7 @@ export const syncEquipments = createServerFn({ method: "POST" }).handler(
 						mapping,
 						defaults,
 						"equipment_dept_lab",
-						null,
+						eqRow.departmentLab || null,
 						"equipment",
 						eqRow,
 					),
@@ -851,7 +852,7 @@ export const syncEquipments = createServerFn({ method: "POST" }).handler(
 						mapping,
 						defaults,
 						"equipment_rate",
-						"10.00",
+						eqRow.usageRate || "10.00",
 						"equipment",
 						eqRow,
 					),
@@ -863,7 +864,7 @@ export const syncEquipments = createServerFn({ method: "POST" }).handler(
 						mapping,
 						defaults,
 						"equipment_srno",
-						eqRow.code,
+						eqRow.serialNumber || eqRow.code,
 						"equipment",
 						eqRow,
 					),
@@ -983,7 +984,7 @@ export const syncEquipments = createServerFn({ method: "POST" }).handler(
 						mapping,
 						defaults,
 						"equipment_location",
-						null,
+						eqRow.location || null,
 						"equipment",
 						eqRow,
 					),
@@ -995,7 +996,7 @@ export const syncEquipments = createServerFn({ method: "POST" }).handler(
 						mapping,
 						defaults,
 						"equipment_website",
-						"http://example.com",
+						eqRow.websiteUrl || "http://example.com",
 						"equipment",
 						eqRow,
 					),
@@ -1019,7 +1020,7 @@ export const syncEquipments = createServerFn({ method: "POST" }).handler(
 						mapping,
 						defaults,
 						"equipment_description",
-						`Local equipment: ${eqRow.name}`,
+						eqRow.description || `Local equipment: ${eqRow.name}`,
 						"equipment",
 						eqRow,
 					),
