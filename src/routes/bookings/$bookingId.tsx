@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/table";
 import { requireUser } from "@/lib/auth";
 import { getUserBooking, submitBookingPaymentInfo } from "@/services/booking";
-import { getFields } from "@/services/field";
+import { getEquipmentFields } from "@/services/equipment";
 import { Header } from "@/components/user/header";
 import { Separator } from "@/components/ui/separator";
 
@@ -51,26 +51,14 @@ function UserBookingDetailPage() {
 	const queryClient = useQueryClient();
 
 	const { data: paymentFields } = useQuery({
-		queryKey: ["fields", "equipment", data.equipmentId, "payment"],
-		queryFn: async () => {
-			const [defaultFields, equipmentSpecificFields] = await Promise.all([
-				getFields({
-					data: {
-						entityType: "equipment",
-						stage: "payment",
-					},
-				}),
-				getFields({
-					data: {
-						entityType: "equipment",
-						entityId: data.equipmentId,
-						stage: "payment",
-					},
-				}),
-			]);
-
-			return [...defaultFields, ...equipmentSpecificFields];
-		},
+		queryKey: ["equipment", "fields", data.equipmentId, "payment"],
+		queryFn: () =>
+			getEquipmentFields({
+				data: {
+					equipmentId: data.equipmentId,
+					stage: "payment",
+				},
+			}),
 		enabled:
 			data.status === "payment" || data.status === "payment_verification",
 	});

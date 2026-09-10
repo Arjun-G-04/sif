@@ -27,4 +27,8 @@ export {
 } from "./queries";
 
 // Helpers
-export { parseFieldResponses, getFieldResponses } from "./helpers";
+export {
+	parseFieldResponses,
+	getFieldResponses,
+	type ParseFieldResponsesOptions,
+} from "./helpers";

@@ -51,6 +51,9 @@ function ProfilePage() {
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["user", "profile"] });
+			queryClient.invalidateQueries({
+				queryKey: ["equipment", "fields"],
+			});
 			toast.success("Profile details saved successfully.");
 		},
 		onError: (err: Error) => {

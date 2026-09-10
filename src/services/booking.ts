@@ -149,8 +149,11 @@ export const submitBooking = createServerFn({ method: "POST" })
 			"equipment",
 			equipmentId,
 			`bookings/${equipmentId}`,
-			["equipmentId"],
-			"initial",
+			{
+				skipKeys: ["equipmentId"],
+				stage: "initial",
+				userId,
+			},
 		);
 
 		await db.transaction(async (tx) => {
@@ -568,8 +571,11 @@ export const submitBookingPaymentInfo = createServerFn({ method: "POST" })
 			"equipment",
 			booking.equipmentId,
 			`bookings/${booking.equipmentId}/payment`,
-			["bookingId"],
-			"payment",
+			{
+				skipKeys: ["bookingId"],
+				stage: "payment",
+				userId: dbUser.id,
+			},
 		);
 
 		if (fieldEntries.length > 0) {

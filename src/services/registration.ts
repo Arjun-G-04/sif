@@ -83,8 +83,10 @@ export const submitRegistration = createServerFn({ method: "POST" })
 			"registration",
 			undefined, // No specific entity ID for registration fields
 			`registrations/${registration.id}`,
-			["username", "password", "email", "phone"],
-			"initial",
+			{
+				skipKeys: ["username", "password", "email", "phone"],
+				stage: "initial",
+			},
 		);
 
 		// Insert all field responses

@@ -11,8 +11,10 @@ import {
 	PlusIcon,
 	TrashIcon,
 	CheckCircle2,
+	AlertCircle,
 	Edit2,
 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { useMemo, useState, type ReactNode } from "react";
 import {
 	useForm,
@@ -26,6 +28,7 @@ import {
 	useWatch,
 } from "react-hook-form";
 import * as z from "zod";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -620,7 +623,7 @@ function InternalFieldRenderer({
 		);
 	}
 
-	if (field.type === "relation" && field.relatedValue) {
+	if (field.type === "relation") {
 		return (
 			<Field>
 				<FieldLabel htmlFor={fieldName}>
@@ -638,16 +641,36 @@ function InternalFieldRenderer({
 					</div>
 				</FieldLabel>
 				<FieldContent>
-					<Input
-						value={field.relatedValue}
-						disabled
-						className="bg-slate-50 text-slate-500"
-					/>
-					<input
-						type="hidden"
-						{...register(fieldName as Path<FormValues>)}
-						value={field.relatedValue || ""}
-					/>
+					{field.relatedValue ? (
+						<>
+							<Input
+								value={field.relatedValue}
+								disabled
+								className="bg-slate-50 text-slate-500"
+							/>
+							<input
+								type="hidden"
+								{...register(fieldName as Path<FormValues>)}
+								value={field.relatedValue}
+							/>
+						</>
+					) : (
+						<Alert className="border-amber-200 bg-amber-50 text-amber-900 py-3">
+							<AlertCircle className="h-4 w-4 text-amber-600" />
+							<AlertDescription className="text-amber-800 text-xs">
+								Relation value missing for {field.name}. Please
+								update in your{" "}
+								<Link
+									to="/profile"
+									className="font-semibold underline hover:text-amber-950"
+								>
+									Profile
+								</Link>{" "}
+								or contact admin.
+							</AlertDescription>
+						</Alert>
+					)}
+					<UIFieldError>{error?.message}</UIFieldError>
 				</FieldContent>
 			</Field>
 		);
@@ -781,13 +804,6 @@ function InternalFieldRenderer({
 								</label>
 							);
 						})}
-					</div>
-				)}
-
-				{field.type === "relation" && !field.relatedValue && (
-					<div className="p-4 bg-yellow-50 text-yellow-800 rounded-md text-sm border border-yellow-200">
-						Relation value missing for {field.name}. Please contact
-						admin.
 					</div>
 				)}
 

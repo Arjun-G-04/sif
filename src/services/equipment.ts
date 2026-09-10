@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { equipments, users } from "@/db/schema";
+import { equipments, fieldStage, users } from "@/db/schema";
 import { requireAdmin, requireUser } from "@/lib/auth";
 import { safeParseAndThrow } from "@/lib/utils";
 import { createServerFn } from "@tanstack/react-start";
@@ -132,6 +132,7 @@ export const toggleEquipmentActive = createServerFn({ method: "POST" })
 
 const GetEquipmentFieldsInput = z.object({
 	equipmentId: z.number().int(),
+	stage: z.enum(fieldStage.enumValues).default("initial"),
 });
 
 export const getEquipmentFields = createServerFn({ method: "GET" })
@@ -139,15 +140,16 @@ export const getEquipmentFields = createServerFn({ method: "GET" })
 	.handler(async ({ data }) => {
 		const user = await requireUser();
 		const parsedData = safeParseAndThrow(data, GetEquipmentFieldsInput);
+		const stage = parsedData.stage ?? "initial";
 
-		// Fetch global defaults and equipment-specific fields.
+		// Fetch global defaults and equipment-specific fields for the requested stage.
 		const [defaultFields, equipmentSpecificFields] = await Promise.all([
-			fetchFieldsFromDb("equipment", false, undefined, "initial"),
+			fetchFieldsFromDb("equipment", false, undefined, stage),
 			fetchFieldsFromDb(
 				"equipment",
 				false,
 				parsedData.equipmentId,
-				"initial",
+				stage,
 			),
 		]);
 		const equipmentFields = [...defaultFields, ...equipmentSpecificFields];
@@ -158,7 +160,7 @@ export const getEquipmentFields = createServerFn({ method: "GET" })
 			.where(eq(users.username, user.username))
 			.limit(1);
 
-		if (!dbUser || !dbUser.regId) {
+		if (!dbUser) {
 			throw new Error("User not found");
 		}
 

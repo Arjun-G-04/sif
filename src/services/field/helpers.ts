@@ -5,11 +5,19 @@ import { db } from "../../db";
 import {
 	type entityType,
 	fieldGroups,
+	fieldRelations,
 	fieldResponses,
 	fields,
 	type fieldStage,
+	users,
 } from "../../db/schema";
 import type { FieldEntry } from "./types";
+
+export interface ParseFieldResponsesOptions {
+	skipKeys?: string[];
+	stage?: (typeof fieldStage.enumValues)[number];
+	userId?: number;
+}
 
 export const parseFieldResponses = createServerOnlyFn(
 	async (
@@ -17,9 +25,10 @@ export const parseFieldResponses = createServerOnlyFn(
 		type: (typeof entityType.enumValues)[number],
 		entityId: number | undefined,
 		fileSubPath: string,
-		skipKeys: string[] = [],
-		stage?: (typeof fieldStage.enumValues)[number],
+		options: ParseFieldResponsesOptions = {},
 	): Promise<FieldEntry[]> => {
+		const { skipKeys = [], stage, userId } = options;
+
 		// Fetch fields from database
 		const entityFields = await db
 			.select({
@@ -50,6 +59,44 @@ export const parseFieldResponses = createServerOnlyFn(
 		const fieldIdToField = new Map(
 			entityFields.map((f) => [String(f.id), f]),
 		);
+
+		// Fetch relation definitions and DB values if any relation fields exist
+		const relationFields = entityFields.filter(
+			(f) => f.type === "relation",
+		);
+		const relationFieldIds = relationFields.map((f) => f.id);
+		let relationMap = new Map<number, typeof fieldRelations.$inferSelect>();
+		let registrationResponseMap = new Map<number, string | null>();
+
+		if (relationFieldIds.length > 0) {
+			const relations = await db
+				.select()
+				.from(fieldRelations)
+				.where(inArray(fieldRelations.fieldId, relationFieldIds));
+			relationMap = new Map(relations.map((r) => [r.fieldId, r]));
+
+			if (userId) {
+				const regResponses = await db
+					.select({
+						fieldId: fieldResponses.fieldId,
+						value: fieldResponses.value,
+					})
+					.from(fieldResponses)
+					.innerJoin(
+						users,
+						eq(users.registrationId, fieldResponses.entityId),
+					)
+					.where(
+						and(
+							eq(users.id, userId),
+							eq(fieldResponses.entityType, "registration"),
+						),
+					);
+				registrationResponseMap = new Map(
+					regResponses.map((r) => [r.fieldId, r.value]),
+				);
+			}
+		}
 
 		// Fetch group constraints
 		const parentIds = [
@@ -87,6 +134,10 @@ export const parseFieldResponses = createServerOnlyFn(
 			const field = fieldIdToField.get(fieldIdRaw);
 			if (!field) continue;
 
+			// Security: Never trust client-submitted values for relation fields.
+			// Relation fields are populated directly from the DB below.
+			if (field.type === "relation") continue;
+
 			const iteration = iterationRaw ? parseInt(iterationRaw, 10) : 0;
 
 			if (field.parentId) {
@@ -118,6 +169,26 @@ export const parseFieldResponses = createServerOnlyFn(
 				fieldId: field.id,
 				iteration,
 				value: fieldValue,
+			});
+		}
+
+		// Securely populate relation fields from DB registration responses
+		for (const relField of relationFields) {
+			const relationDef = relationMap.get(relField.id);
+			let relationValue: string | null = null;
+			if (
+				relationDef &&
+				relationDef.relatedEntityType === "registration"
+			) {
+				relationValue =
+					registrationResponseMap.get(relationDef.relatedFieldId) ??
+					null;
+			}
+
+			fieldEntries.push({
+				fieldId: relField.id,
+				iteration: 0,
+				value: relationValue,
 			});
 		}
 
@@ -156,6 +227,11 @@ export const parseFieldResponses = createServerOnlyFn(
 						entry.value === undefined ||
 						entry.value.trim() === ""
 					) {
+						if (field.type === "relation") {
+							throw new Error(
+								`Field "${field.name}" is missing in your profile. Please update your profile.`,
+							);
+						}
 						throw new Error(`Field "${field.name}" is required.`);
 					}
 				}
@@ -173,6 +249,11 @@ export const parseFieldResponses = createServerOnlyFn(
 							entry.value === undefined ||
 							entry.value.trim() === ""
 						) {
+							if (field.type === "relation") {
+								throw new Error(
+									`Field "${field.name}" is missing in your profile. Please update your profile.`,
+								);
+							}
 							throw new Error(
 								`Field "${field.name}" is required for item ${i + 1}.`,
 							);
