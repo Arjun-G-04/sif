@@ -256,9 +256,9 @@ function ResponseRow({
 					: "hover:bg-slate-50/40",
 			)}
 		>
-			<TableCell className="align-top py-3.5 px-4 font-medium text-slate-700 max-w-0 break-words whitespace-normal">
+			<TableCell className="align-top py-3.5 px-4 font-medium text-slate-700 max-w-0 break-words whitespace-normal [overflow-wrap:anywhere]">
 				<div className="space-y-1">
-					<div className="font-semibold text-slate-800 leading-snug">
+					<div className="font-semibold text-slate-800 leading-snug break-words [overflow-wrap:anywhere]">
 						{resp.fieldName}
 						{(resp.iteration > 0 || resp.parentId !== null) && (
 							<span className="ml-1.5 text-xs font-normal text-slate-400">
@@ -272,7 +272,7 @@ function ResponseRow({
 				</div>
 			</TableCell>
 
-			<TableCell className="align-top py-3.5 px-4 max-w-0">
+			<TableCell className="align-top py-3.5 px-4 max-w-0 whitespace-normal break-words [overflow-wrap:anywhere]">
 				{resp.fieldType === "file" ? (
 					<FileViewer
 						responseId={resp.responseId}
@@ -284,10 +284,10 @@ function ResponseRow({
 				) : (
 					<div
 						className={cn(
-							"rounded-md border border-slate-200/80 bg-slate-50 text-slate-800 break-words leading-relaxed",
+							"rounded-md border border-slate-200/80 bg-slate-50 text-slate-800 break-words [overflow-wrap:anywhere] leading-relaxed",
 							isLong
 								? "text-sm min-h-[80px] max-h-48 p-2.5 overflow-y-auto whitespace-pre-wrap"
-								: "text-sm h-9 px-3 flex items-center whitespace-normal",
+								: "text-sm min-h-9 py-2 px-3 whitespace-normal",
 						)}
 					>
 						{userVal}
@@ -295,7 +295,7 @@ function ResponseRow({
 				)}
 			</TableCell>
 
-			<TableCell className="align-top py-3.5 px-4 max-w-0">
+			<TableCell className="align-top py-3.5 px-4 max-w-0 whitespace-normal break-words [overflow-wrap:anywhere]">
 				{resp.fieldType === "file" ? (
 					<span className="text-xs text-slate-400 italic">
 						File responses cannot be overridden

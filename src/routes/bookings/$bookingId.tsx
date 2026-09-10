@@ -367,7 +367,7 @@ function UserBookingDetailPage() {
 							</div>
 						</div>
 
-						<div className="md:col-span-3 space-y-6">
+						<div className="md:col-span-3 space-y-6 min-w-0">
 							<div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm space-y-6">
 								<h2 className="text-xl font-bold text-slate-900">
 									Submitted Information
@@ -395,9 +395,9 @@ function UserBookingDetailPage() {
 															}
 															className="hover:bg-slate-50/40 align-top"
 														>
-															<TableCell className="font-medium text-slate-700 py-3.5 px-4 align-top max-w-0 break-words">
+															<TableCell className="font-medium text-slate-700 py-3.5 px-4 align-top max-w-0 break-words whitespace-normal [overflow-wrap:anywhere]">
 																<div className="flex flex-col gap-1">
-																	<span className="font-medium text-slate-800 leading-snug">
+																	<span className="font-medium text-slate-800 leading-snug break-words [overflow-wrap:anywhere]">
 																		{
 																			resp.fieldName
 																		}
@@ -415,7 +415,7 @@ function UserBookingDetailPage() {
 																	</span>
 																</div>
 															</TableCell>
-															<TableCell className="py-3.5 px-4 align-top max-w-0">
+															<TableCell className="py-3.5 px-4 align-top max-w-0 whitespace-normal break-words [overflow-wrap:anywhere]">
 																<ResponseValueDisplay
 																	value={
 																		resp.value
@@ -468,9 +468,9 @@ function UserBookingDetailPage() {
 																	}
 																	className="border-blue-50/70 hover:bg-blue-50/40 align-top"
 																>
-																	<TableCell className="font-medium text-slate-700 py-3.5 px-4 align-top max-w-0 break-words">
+																	<TableCell className="font-medium text-slate-700 py-3.5 px-4 align-top max-w-0 break-words whitespace-normal [overflow-wrap:anywhere]">
 																		<div className="flex flex-col gap-1">
-																			<span className="font-medium text-slate-800 leading-snug">
+																			<span className="font-medium text-slate-800 leading-snug break-words [overflow-wrap:anywhere]">
 																				{
 																					resp.fieldName
 																				}
@@ -488,7 +488,7 @@ function UserBookingDetailPage() {
 																			</span>
 																		</div>
 																	</TableCell>
-																	<TableCell className="py-3.5 px-4 align-top max-w-0">
+																	<TableCell className="py-3.5 px-4 align-top max-w-0 whitespace-normal break-words [overflow-wrap:anywhere]">
 																		<ResponseValueDisplay
 																			value={
 																				resp.value

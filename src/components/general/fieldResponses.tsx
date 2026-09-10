@@ -80,7 +80,7 @@ export function ResponseValueDisplay({
 					<span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">
 						Original:
 					</span>
-					<div className="text-slate-400 text-xs line-through decoration-slate-300 break-words whitespace-pre-wrap rounded bg-slate-50 p-2 border border-slate-100 max-h-28 overflow-y-auto">
+					<div className="text-slate-400 text-xs line-through decoration-slate-300 break-words [overflow-wrap:anywhere] whitespace-pre-wrap rounded bg-slate-50 p-2 border border-slate-100 max-h-28 overflow-y-auto">
 						{value || "—"}
 					</div>
 				</div>
@@ -88,7 +88,7 @@ export function ResponseValueDisplay({
 					<span className="text-[10px] text-blue-600 font-semibold uppercase tracking-wider block">
 						Admin Override:
 					</span>
-					<div className="text-blue-900 font-medium bg-blue-50/80 p-2.5 rounded-md text-sm border border-blue-200/60 break-words whitespace-pre-wrap leading-relaxed max-h-36 overflow-y-auto">
+					<div className="text-blue-900 font-medium bg-blue-50/80 p-2.5 rounded-md text-sm border border-blue-200/60 break-words [overflow-wrap:anywhere] whitespace-pre-wrap leading-relaxed max-h-36 overflow-y-auto">
 						{adminValue}
 					</div>
 				</div>
@@ -105,7 +105,7 @@ export function ResponseValueDisplay({
 	return (
 		<div
 			className={cn(
-				"text-slate-800 break-words leading-relaxed",
+				"text-slate-800 break-words [overflow-wrap:anywhere] leading-relaxed",
 				isLong
 					? "text-sm rounded-md bg-slate-50 p-2.5 border border-slate-200/70 max-h-36 overflow-y-auto whitespace-pre-wrap"
 					: "text-sm whitespace-normal",

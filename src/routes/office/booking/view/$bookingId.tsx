@@ -320,7 +320,7 @@ function BookingDetailPage() {
 							</div>
 						</div>
 
-						<div className="md:col-span-3">
+						<div className="md:col-span-3 min-w-0">
 							<div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
 								<BookingFieldsEditor
 									bookingId={data.id}
