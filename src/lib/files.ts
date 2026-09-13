@@ -11,6 +11,14 @@ interface WriteFileOptions {
 
 export const saveUploadedFile = createServerOnlyFn(
 	async ({ subPath, file }: WriteFileOptions) => {
+		const sizeLimit = 100;
+
+		if (file.size > sizeLimit * 1024 * 1024) {
+			throw new Error(
+				`File exceeds maximum allowed size of ${sizeLimit} MB`,
+			);
+		}
+
 		const fullDir = join(MEDIA_BASE, subPath);
 		await mkdir(fullDir, { recursive: true });
 

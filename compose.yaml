@@ -36,6 +36,23 @@ services:
     depends_on:
       - db
 
+  db-backup:
+    image: prodrigestivill/postgres-backup-local:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: sif
+      POSTGRES_USER: db_user
+      POSTGRES_PASSWORD: ${DB_PASS}
+      SCHEDULE: '@daily'
+      BACKUP_KEEP_DAYS: 7
+      BACKUP_DIR: /backups
+    volumes:
+      - db_backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+
   migrator:
     profiles: ["tools"]
     build:
@@ -51,3 +68,4 @@ services:
 volumes:
   db_data:
   media_data:
+  db_backups:
