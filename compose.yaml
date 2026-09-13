@@ -37,7 +37,7 @@ services:
       - db
 
   db-backup:
-    image: prodrigestivill/postgres-backup-local:18
+    image: prodrigestivill/postgres-backup-local:16
     restart: unless-stopped
     environment:
       POSTGRES_HOST: db
@@ -48,7 +48,7 @@ services:
       BACKUP_KEEP_DAYS: 7
       BACKUP_DIR: /backups
     volumes:
-      - ./backups:/backups
+      - db_backups:/backups
     depends_on:
       db:
         condition: service_healthy
@@ -68,4 +68,4 @@ services:
 volumes:
   db_data:
   media_data:
-  backups:
+  db_backups:
