@@ -55,6 +55,14 @@ export const createField = createServerFn({ method: "POST" })
 					order: parsedData.order,
 					stage: parsedData.stage,
 					required: parsedData.required,
+					charLimitType:
+						parsedData.type === "text"
+							? (parsedData.charLimitType ?? null)
+							: null,
+					charLimit:
+						parsedData.type === "text"
+							? (parsedData.charLimit ?? null)
+							: null,
 				})
 				.returning({ id: fields.id });
 
@@ -129,6 +137,14 @@ export const updateField = createServerFn({ method: "POST" })
 					order: parsedData.order,
 					stage: parsedData.stage,
 					required: parsedData.required,
+					charLimitType:
+						parsedData.type === "text"
+							? (parsedData.charLimitType ?? null)
+							: null,
+					charLimit:
+						parsedData.type === "text"
+							? (parsedData.charLimit ?? null)
+							: null,
 				})
 				.where(eq(fields.id, parsedData.id));
 

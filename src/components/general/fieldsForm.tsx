@@ -322,8 +322,30 @@ export function FieldsForm({
 				}
 
 				let fieldSchema: z.ZodTypeAny;
-				if (
-					field.type === "text" ||
+				if (field.type === "text") {
+					let s = field.required
+						? z.string().min(1, `${field.name} is required`)
+						: z.string();
+
+					if (field.charLimitType === "max" && field.charLimit) {
+						s = s.max(
+							field.charLimit,
+							`${field.name} must not exceed ${field.charLimit} characters`,
+						);
+					} else if (
+						field.charLimitType === "exact" &&
+						field.charLimit
+					) {
+						s = s.length(
+							field.charLimit,
+							`${field.name} must be exactly ${field.charLimit} characters`,
+						);
+					}
+
+					fieldSchema = field.required
+						? s
+						: s.optional().or(z.literal(""));
+				} else if (
 					field.type === "single_select" ||
 					field.type === "date" ||
 					field.type === "relation"
@@ -561,10 +583,12 @@ function InternalFieldRenderer({
 		return current as RHFFieldError | undefined;
 	};
 	const error = getError(fieldName, errors);
-	const currentValues = useWatch({
+	const watchedValue = useWatch({
 		control,
 		name: fieldName as Path<FormValues>,
-	}) as string[] | undefined;
+	});
+	const currentValues = watchedValue as string[] | undefined;
+	const textValue = typeof watchedValue === "string" ? watchedValue : "";
 
 	if (field.type === "heading") {
 		return (
@@ -705,12 +729,31 @@ function InternalFieldRenderer({
 			</FieldLabel>
 			<FieldContent>
 				{field.type === "text" && (
-					<Input
-						id={fieldName}
-						placeholder={field.name}
-						{...register(fieldName as Path<FormValues>)}
-						className={error ? "border-red-500" : ""}
-					/>
+					<div className="space-y-1">
+						<Input
+							id={fieldName}
+							placeholder={field.name}
+							maxLength={
+								field.charLimitType && field.charLimit
+									? field.charLimit
+									: undefined
+							}
+							{...register(fieldName as Path<FormValues>)}
+							className={error ? "border-red-500" : ""}
+						/>
+						{field.charLimitType && field.charLimit && (
+							<div className="flex justify-between items-center text-[11px] text-muted-foreground px-0.5">
+								<span>
+									{field.charLimitType === "exact"
+										? `Must be exactly ${field.charLimit} characters`
+										: `Max ${field.charLimit} characters`}
+								</span>
+								<span>
+									{textValue.length}/{field.charLimit}
+								</span>
+							</div>
+						)}
+					</div>
 				)}
 
 				{field.type === "date" && (

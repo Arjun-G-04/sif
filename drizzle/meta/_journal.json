@@ -134,6 +134,13 @@
       "when": 1787663528264,
       "tag": "0018_even_grey_gargoyle",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1789294192513,
+      "tag": "0019_nifty_romulus",
+      "breakpoints": true
     }
   ]
 }

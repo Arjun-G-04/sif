@@ -1,8 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Upload } from "lucide-react";
+import { ChevronDown, Plus, Trash2, Upload } from "lucide-react";
 import { useCallback, useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
 	Dialog,
 	DialogContent,
@@ -22,12 +28,12 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
 	type entityType as entityTypeDef,
 	type fieldStage,
 	fieldType,
 } from "@/db/schema";
+import { cn } from "@/lib/utils";
 import {
 	createField,
 	type Field,
@@ -97,11 +103,21 @@ export function FieldDialog({
 		field?.type === "relation" ? String(field.relation.relatedFieldId) : "",
 	);
 	const [required, setRequired] = useState(field?.required ?? true);
+	const [charLimitType, setCharLimitType] = useState<
+		"none" | "max" | "exact"
+	>(field?.charLimitType || "none");
+	const [charLimit, setCharLimit] = useState<number | "">(
+		field?.charLimit ?? "",
+	);
+	const [isAdvancedOpen, setIsAdvancedOpen] = useState(
+		Boolean(field?.charLimitType),
+	);
 
 	const [pendingFile, setPendingFile] = useState<File | null>(null);
 	const nameId = useId();
 	const orderId = useId();
 	const requiredId = useId();
+	const charLimitId = useId();
 	const queryClient = useQueryClient();
 
 	const resetForm = useCallback(() => {
@@ -117,6 +133,9 @@ export function FieldDialog({
 		setRelatedEntityType("");
 		setRelatedFieldId("");
 		setRequired(true);
+		setCharLimitType("none");
+		setCharLimit("");
+		setIsAdvancedOpen(false);
 	}, [initialStage]);
 
 	useEffect(() => {
@@ -152,6 +171,9 @@ export function FieldDialog({
 				if (field.type === "admin_file" && field.adminFileConfig) {
 					setAdminFileConfig(field.adminFileConfig);
 				}
+				setCharLimitType(field.charLimitType || "none");
+				setCharLimit(field.charLimit ?? "");
+				setIsAdvancedOpen(Boolean(field.charLimitType));
 			} else {
 				resetForm();
 			}
@@ -280,6 +302,15 @@ export function FieldDialog({
 			}
 		}
 
+		if (type === "text" && charLimitType !== "none") {
+			if (!charLimit || Number(charLimit) <= 0) {
+				toast.error(
+					"Please enter a valid character limit greater than 0",
+				);
+				return;
+			}
+		}
+
 		const fieldData = {
 			name,
 			type,
@@ -292,6 +323,14 @@ export function FieldDialog({
 				type !== "group"
 					? required
 					: false,
+			charLimitType:
+				type === "text" && charLimitType !== "none"
+					? charLimitType
+					: null,
+			charLimit:
+				type === "text" && charLimitType !== "none" && charLimit !== ""
+					? Number(charLimit)
+					: null,
 			options:
 				type === "single_select" || type === "multi_select"
 					? options.map((o) => o.value)
@@ -459,6 +498,98 @@ export function FieldDialog({
 								</Label>
 							</div>
 						)}
+					{type === "text" && (
+						<Collapsible
+							open={isAdvancedOpen}
+							onOpenChange={setIsAdvancedOpen}
+							className="border rounded-lg bg-muted/40 overflow-hidden"
+						>
+							<CollapsibleTrigger asChild>
+								<button
+									type="button"
+									className="flex w-full items-center justify-between p-3 text-xs font-semibold text-foreground/80 hover:text-foreground transition-colors"
+								>
+									<span className="flex items-center gap-1.5">
+										Advanced Settings
+										{charLimitType !== "none" && (
+											<span className="inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+												Active
+											</span>
+										)}
+									</span>
+									<ChevronDown
+										className={cn(
+											"h-4 w-4 text-muted-foreground transition-transform duration-200",
+											isAdvancedOpen && "rotate-180",
+										)}
+									/>
+								</button>
+							</CollapsibleTrigger>
+							<CollapsibleContent className="p-3 pt-0 space-y-3 border-t border-border/60">
+								<div className="space-y-2 pt-2">
+									<Label>Character Count Restriction</Label>
+									<Select
+										value={charLimitType}
+										onValueChange={(
+											val: "none" | "max" | "exact",
+										) => setCharLimitType(val)}
+									>
+										<SelectTrigger>
+											<SelectValue placeholder="No restriction" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="none">
+												No restriction
+											</SelectItem>
+											<SelectItem value="max">
+												Fixed Limit (Maximum Characters)
+											</SelectItem>
+											<SelectItem value="exact">
+												Exact Character Count
+											</SelectItem>
+										</SelectContent>
+									</Select>
+								</div>
+
+								{charLimitType !== "none" && (
+									<div className="space-y-2">
+										<Label htmlFor={charLimitId}>
+											{charLimitType === "max"
+												? "Maximum Characters"
+												: "Exact Character Count"}
+										</Label>
+										<Input
+											id={charLimitId}
+											type="number"
+											min={1}
+											placeholder={
+												charLimitType === "max"
+													? "e.g. 100"
+													: "e.g. 10"
+											}
+											value={charLimit}
+											onChange={(e) => {
+												const val = e.target.value;
+												setCharLimit(
+													val === ""
+														? ""
+														: Math.max(
+																1,
+																Number(val),
+															),
+												);
+											}}
+										/>
+										<p className="text-xs text-muted-foreground">
+											{charLimitType === "max"
+												? "User cannot enter more than this number of characters."
+												: "User must enter precisely this number of characters."}
+										</p>
+									</div>
+								)}
+							</CollapsibleContent>
+						</Collapsible>
+					)}
 					{type === "group" && (
 						<div className="space-y-2">
 							<Label>Max Iterations</Label>

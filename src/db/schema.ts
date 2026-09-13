@@ -147,6 +147,8 @@ export const entityType = pgEnum("entity_type", ["registration", "equipment"]);
 
 export const fieldStage = pgEnum("field_stage", ["initial", "payment"]);
 
+export const charLimitType = pgEnum("char_limit_type", ["max", "exact"]);
+
 export const fields = pgTable("fields", {
 	id: serial().primaryKey(),
 	entityType: entityType("entity_type").notNull(),
@@ -158,6 +160,8 @@ export const fields = pgTable("fields", {
 	stage: fieldStage().notNull().default("initial"),
 	active: boolean().notNull().default(true),
 	required: boolean().notNull().default(true),
+	charLimitType: charLimitType("char_limit_type"),
+	charLimit: integer("char_limit"),
 });
 
 export const fieldGroups = pgTable("field_groups", {

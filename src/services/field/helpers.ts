@@ -19,6 +19,47 @@ export interface ParseFieldResponsesOptions {
 	userId?: number;
 }
 
+export const validateCharCount = createServerOnlyFn(
+	(
+		field: {
+			name: string;
+			type: string;
+			charLimitType?: "max" | "exact" | null;
+			charLimit?: number | null;
+		},
+		value: string | null | undefined,
+		options?: { itemIndex?: number },
+	) => {
+		if (field.type !== "text" || !field.charLimitType || !field.charLimit) {
+			return;
+		}
+
+		const str = typeof value === "string" ? value.trim() : "";
+		if (!str) {
+			return;
+		}
+
+		const context =
+			options?.itemIndex !== undefined
+				? ` for item ${options.itemIndex}`
+				: "";
+
+		if (field.charLimitType === "max") {
+			if (str.length > field.charLimit) {
+				throw new Error(
+					`Field "${field.name}"${context} must not exceed ${field.charLimit} characters.`,
+				);
+			}
+		} else if (field.charLimitType === "exact") {
+			if (str.length !== field.charLimit) {
+				throw new Error(
+					`Field "${field.name}"${context} must be exactly ${field.charLimit} characters.`,
+				);
+			}
+		}
+	},
+);
+
 export const parseFieldResponses = createServerOnlyFn(
 	async (
 		formData: FormData,
@@ -37,6 +78,8 @@ export const parseFieldResponses = createServerOnlyFn(
 				type: fields.type,
 				parentId: fields.parentId,
 				required: fields.required,
+				charLimitType: fields.charLimitType,
+				charLimit: fields.charLimit,
 			})
 			.from(fields)
 			.where(
@@ -217,10 +260,10 @@ export const parseFieldResponses = createServerOnlyFn(
 
 			if (field.parentId === null) {
 				// Top-level field
+				const entry = fieldEntries.find(
+					(e) => e.fieldId === field.id && e.iteration === 0,
+				);
 				if (field.required) {
-					const entry = fieldEntries.find(
-						(e) => e.fieldId === field.id && e.iteration === 0,
-					);
 					if (
 						!entry ||
 						entry.value === null ||
@@ -235,28 +278,46 @@ export const parseFieldResponses = createServerOnlyFn(
 						throw new Error(`Field "${field.name}" is required.`);
 					}
 				}
+				if (
+					entry &&
+					entry.value !== null &&
+					entry.value !== undefined
+				) {
+					validateCharCount(field, entry.value);
+				}
 			} else {
 				// Nested field under parent group
 				const numIterations = groupIterations.get(field.parentId) ?? 0;
-				if (numIterations > 0 && field.required) {
+				if (numIterations > 0) {
 					for (let i = 0; i < numIterations; i++) {
 						const entry = fieldEntries.find(
 							(e) => e.fieldId === field.id && e.iteration === i,
 						);
-						if (
-							!entry ||
-							entry.value === null ||
-							entry.value === undefined ||
-							entry.value.trim() === ""
-						) {
-							if (field.type === "relation") {
+						if (field.required) {
+							if (
+								!entry ||
+								entry.value === null ||
+								entry.value === undefined ||
+								entry.value.trim() === ""
+							) {
+								if (field.type === "relation") {
+									throw new Error(
+										`Field "${field.name}" is missing in your profile. Please update your profile.`,
+									);
+								}
 								throw new Error(
-									`Field "${field.name}" is missing in your profile. Please update your profile.`,
+									`Field "${field.name}" is required for item ${i + 1}.`,
 								);
 							}
-							throw new Error(
-								`Field "${field.name}" is required for item ${i + 1}.`,
-							);
+						}
+						if (
+							entry &&
+							entry.value !== null &&
+							entry.value !== undefined
+						) {
+							validateCharCount(field, entry.value, {
+								itemIndex: i + 1,
+							});
 						}
 					}
 				}

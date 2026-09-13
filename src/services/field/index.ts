@@ -30,5 +30,6 @@ export {
 export {
 	parseFieldResponses,
 	getFieldResponses,
+	validateCharCount,
 	type ParseFieldResponsesOptions,
 } from "./helpers";

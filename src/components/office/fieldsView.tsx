@@ -169,6 +169,17 @@ export function FieldsView({
 						>
 							Max Iterations: {field.groupConfig.max}
 						</Badge>
+					) : field.type === "text" &&
+						field.charLimitType &&
+						field.charLimit ? (
+						<Badge
+							variant="secondary"
+							className="text-[10px] py-0 px-2 font-normal"
+						>
+							{field.charLimitType === "exact"
+								? `Exact: ${field.charLimit} chars`
+								: `Max: ${field.charLimit} chars`}
+						</Badge>
 					) : field.type === "heading" ||
 						field.type === "info_text" ? (
 						<span className="text-xs text-gray-400 italic">

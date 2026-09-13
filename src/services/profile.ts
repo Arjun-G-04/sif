@@ -4,7 +4,7 @@ import { db } from "../db";
 import { fieldResponses, registrations, users } from "../db/schema";
 import { requireUser } from "../lib/auth";
 import { saveUploadedFile } from "../lib/files";
-import { getFieldResponses } from "./field/helpers";
+import { getFieldResponses, validateCharCount } from "./field/helpers";
 import { fetchFieldsFromDb } from "./field/queries";
 import type { Field } from "./field/types";
 
@@ -229,6 +229,11 @@ export const updateUserProfile = createServerFn({ method: "POST" })
 			}
 
 			if (finalValue && finalValue.length > 0) {
+				validateCharCount(
+					field,
+					finalValue,
+					field.parentId ? { itemIndex: iteration + 1 } : undefined,
+				);
 				updatesToPerform.push({
 					fieldId,
 					iteration,
