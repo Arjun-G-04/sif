@@ -13,7 +13,7 @@ import { useId } from "react";
 
 interface AuthCredentialsCardProps {
 	isAuthenticated: boolean;
-	tokenExpiresAt?: string | null;
+	tokenExpiresAt?: Date | string | null;
 	username: string;
 	setUsername: (val: string) => void;
 	password: string;

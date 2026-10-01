@@ -34,21 +34,10 @@ interface SyncControlsCardProps {
 	onSyncBookings: () => void;
 }
 
-function SyncBlockerWarning({
-	reason,
-	isDependency,
-}: {
-	reason?: string | null;
-	isDependency?: boolean;
-}) {
+function SyncBlockerWarning({ reason }: { reason?: string | null }) {
 	if (!reason) return null;
 	return (
-		<span
-			className={cn(
-				"text-xs font-medium flex items-center gap-1.5 mt-0.5",
-				isDependency ? "text-red-500" : "text-amber-600",
-			)}
-		>
+		<span className="text-xs font-medium flex items-center gap-1.5 mt-0.5 text-amber-600">
 			<AlertCircle className="w-3.5 h-3.5 shrink-0" />
 			Blocked: {reason}
 		</span>
@@ -70,95 +59,48 @@ export function SyncControlsCard({
 	onSyncBookings,
 }: SyncControlsCardProps) {
 	// Blocker evaluations
-	const getUserBlocker = () => {
+	const getBlocker = (hasUnmappedFields: boolean, unmappedReason: string) => {
 		if (isConfigChanged) {
-			return {
-				reason: "Save mapping changes before syncing",
-				isDependency: false,
-			};
+			return "Save mapping changes before syncing";
 		}
-		if (hasUnmappedUserFields) {
-			return { reason: "Map all user fields first", isDependency: false };
+		if (hasUnmappedFields) {
+			return unmappedReason;
 		}
 		return null;
 	};
 
-	const getEquipmentBlocker = () => {
-		if (isConfigChanged) {
-			return {
-				reason: "Save mapping changes before syncing",
-				isDependency: false,
-			};
-		}
-		if (status.unsyncedUsersCount > 0) {
-			return { reason: "Sync users first", isDependency: true };
-		}
-		if (hasUnmappedEquipmentFields) {
-			return {
-				reason: "Map all equipment fields first",
-				isDependency: false,
-			};
-		}
-		return null;
-	};
-
-	const getBookingBlocker = () => {
-		if (isConfigChanged) {
-			return {
-				reason: "Save mapping changes before syncing",
-				isDependency: false,
-			};
-		}
-		if (
-			status.unsyncedUsersCount > 0 ||
-			status.unsyncedEquipmentsCount > 0
-		) {
-			return {
-				reason: "Sync users and equipments first",
-				isDependency: true,
-			};
-		}
-		if (hasUnmappedBookingFields) {
-			return {
-				reason: "Map all booking fields for all equipments first",
-				isDependency: false,
-			};
-		}
-		return null;
-	};
-
-	const userBlocker = getUserBlocker();
-	const equipmentBlocker = getEquipmentBlocker();
-	const bookingBlocker = getBookingBlocker();
+	const userBlocker = getBlocker(
+		hasUnmappedUserFields,
+		"Map all user fields first",
+	);
+	const equipmentBlocker = getBlocker(
+		hasUnmappedEquipmentFields,
+		"Map all equipment fields first",
+	);
+	const bookingBlocker = getBlocker(
+		hasUnmappedBookingFields,
+		"Map all booking fields for all equipments first",
+	);
 
 	const isUserDisabled =
-		isPending ||
-		status.unsyncedUsersCount === 0 ||
-		hasUnmappedUserFields ||
-		isConfigChanged;
+		isPending || status.unsyncedUsersCount === 0 || Boolean(userBlocker);
 
 	const isEquipmentDisabled =
 		isPending ||
 		status.unsyncedEquipmentsCount === 0 ||
-		status.unsyncedUsersCount > 0 ||
-		hasUnmappedEquipmentFields ||
-		isConfigChanged;
+		Boolean(equipmentBlocker);
 
 	const isBookingDisabled =
 		isPending ||
 		status.unsyncedBookingsCount === 0 ||
-		status.unsyncedUsersCount > 0 ||
-		status.unsyncedEquipmentsCount > 0 ||
-		hasUnmappedBookingFields ||
-		isConfigChanged;
+		Boolean(bookingBlocker);
 
 	return (
 		<Card className="border-slate-200">
 			<CardHeader>
 				<CardTitle>Synchronization Controls</CardTitle>
 				<CardDescription>
-					Manually trigger sync operations. Synchronizations must be
-					run sequentially in the order below.
+					Manually trigger sync operations.
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-4">
@@ -166,10 +108,7 @@ export function SyncControlsCard({
 				<div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-4">
 					<div>
 						<h4 className="font-semibold text-slate-900">Users</h4>
-						<SyncBlockerWarning
-							reason={userBlocker?.reason}
-							isDependency={userBlocker?.isDependency}
-						/>
+						<SyncBlockerWarning reason={userBlocker} />
 					</div>
 					<div className="flex flex-wrap items-center gap-3">
 						<div className="flex items-center gap-2 text-xs">
@@ -204,10 +143,7 @@ export function SyncControlsCard({
 						<h4 className="font-semibold text-slate-900">
 							Equipments
 						</h4>
-						<SyncBlockerWarning
-							reason={equipmentBlocker?.reason}
-							isDependency={equipmentBlocker?.isDependency}
-						/>
+						<SyncBlockerWarning reason={equipmentBlocker} />
 					</div>
 					<div className="flex flex-wrap items-center gap-3">
 						<div className="flex items-center gap-2 text-xs">
@@ -242,10 +178,7 @@ export function SyncControlsCard({
 						<h4 className="font-semibold text-slate-900">
 							Bookings
 						</h4>
-						<SyncBlockerWarning
-							reason={bookingBlocker?.reason}
-							isDependency={bookingBlocker?.isDependency}
-						/>
+						<SyncBlockerWarning reason={bookingBlocker} />
 					</div>
 					<div className="flex flex-wrap items-center gap-3">
 						<div className="flex items-center gap-2 text-xs">

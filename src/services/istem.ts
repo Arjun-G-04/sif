@@ -20,6 +20,15 @@ import { and, eq, gt, gte, isNull, isNotNull, or, sql } from "drizzle-orm";
 import * as z from "zod";
 import { getFieldResponses } from "./field/helpers";
 
+interface IstemApiResponse {
+	status?: string;
+	message?: string;
+	error?: string;
+	user_id?: string | number;
+	id?: string | number;
+	new_service_id?: string | number;
+}
+
 // Helper to check token validity and return it
 async function getValidIstemToken() {
 	const [config] = await db
@@ -669,7 +678,7 @@ export const syncUsers = createServerFn({ method: "POST" }).handler(
 					);
 				}
 
-				const resData = await response.json();
+				const resData = (await response.json()) as IstemApiResponse;
 				const statusStr = String(resData.status || "").toLowerCase();
 				if (statusStr !== "success" && statusStr !== "sucess") {
 					throw new Error(
@@ -732,26 +741,6 @@ export const syncEquipments = createServerFn({ method: "POST" }).handler(
 					`Cannot sync equipments: Equipment field mapping "${key}" is unmapped. Please configure all equipment field mappings.`,
 				);
 			}
-		}
-
-		// Ensure users are fully synced first
-		const [unsyncedUsers] = await db
-			.select({ count: sql<number>`count(*)::int` })
-			.from(users)
-			.where(
-				and(
-					eq(users.role, "public"),
-					or(
-						isNull(users.istemId),
-						gt(users.updatedAt, users.istemSyncedAt),
-					),
-				),
-			);
-
-		if (unsyncedUsers && unsyncedUsers.count > 0) {
-			throw new Error(
-				"Cannot sync equipments. Unsynced users must be synced first.",
-			);
 		}
 
 		const unsyncedEquipments = await db
@@ -1050,7 +1039,7 @@ export const syncEquipments = createServerFn({ method: "POST" }).handler(
 					);
 				}
 
-				const resData = await response.json();
+				const resData = (await response.json()) as IstemApiResponse;
 				const statusStr = String(resData.status || "").toLowerCase();
 				if (statusStr !== "success" && statusStr !== "sucess") {
 					throw new Error(
@@ -1146,39 +1135,6 @@ export const syncBookings = createServerFn({ method: "POST" }).handler(
 			}
 		}
 
-		// Enforce users and equipments are synced first
-		const [unsyncedUsers] = await db
-			.select({ count: sql<number>`count(*)::int` })
-			.from(users)
-			.where(
-				and(
-					eq(users.role, "public"),
-					or(
-						isNull(users.istemId),
-						gt(users.updatedAt, users.istemSyncedAt),
-					),
-				),
-			);
-
-		const [unsyncedEquipments] = await db
-			.select({ count: sql<number>`count(*)::int` })
-			.from(equipments)
-			.where(
-				or(
-					isNull(equipments.istemId),
-					gt(equipments.updatedAt, equipments.istemSyncedAt),
-				),
-			);
-
-		if (
-			(unsyncedUsers && unsyncedUsers.count > 0) ||
-			(unsyncedEquipments && unsyncedEquipments.count > 0)
-		) {
-			throw new Error(
-				"Cannot sync bookings. Unsynced users and equipments must be synced first.",
-			);
-		}
-
 		// Fetch unsynced bookings
 		const unsyncedBookings = await db
 			.select({
@@ -1204,11 +1160,13 @@ export const syncBookings = createServerFn({ method: "POST" }).handler(
 			try {
 				const { booking, user, equipment } = row;
 				if (!user || !user.istemId) {
-					throw new Error("Linked user is not synced to I-STEM.");
+					throw new Error(
+						`Linked user (${user?.username ?? `ID: ${booking.userId}`}) is not synced to I-STEM. Please sync users first.`,
+					);
 				}
 				if (!equipment || !equipment.istemId) {
 					throw new Error(
-						"Linked equipment is not synced to I-STEM.",
+						`Linked equipment (${equipment?.name ?? `ID: ${booking.equipmentId}`}) is not synced to I-STEM. Please sync equipments first.`,
 					);
 				}
 
@@ -1260,7 +1218,8 @@ export const syncBookings = createServerFn({ method: "POST" }).handler(
 						},
 					);
 
-					const cancelData = await cancelRes.json();
+					const cancelData =
+						(await cancelRes.json()) as IstemApiResponse;
 					const cancelStatusStr = String(
 						cancelData.status || "",
 					).toLowerCase();
@@ -1713,7 +1672,7 @@ export const syncBookings = createServerFn({ method: "POST" }).handler(
 					);
 				}
 
-				const resData = await response.json();
+				const resData = (await response.json()) as IstemApiResponse;
 				const statusStr = String(resData.status || "").toLowerCase();
 				if (statusStr !== "success" && statusStr !== "sucess") {
 					throw new Error(
