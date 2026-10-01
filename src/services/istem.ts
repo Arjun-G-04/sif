@@ -21,12 +21,14 @@ import * as z from "zod";
 import { getFieldResponses } from "./field/helpers";
 
 interface IstemApiResponse {
+	result?: string;
 	status?: string;
 	message?: string;
 	error?: string;
 	user_id?: string | number;
 	id?: string | number;
 	new_service_id?: string | number;
+	data?: Array<{ user_id?: string | number; [key: string]: unknown }>;
 }
 
 // Helper to check token validity and return it
@@ -679,18 +681,30 @@ export const syncUsers = createServerFn({ method: "POST" }).handler(
 				}
 
 				const resData = (await response.json()) as IstemApiResponse;
-				const statusStr = String(resData.status || "").toLowerCase();
-				if (statusStr !== "success" && statusStr !== "sucess") {
+				const statusStr = String(
+					resData.status || resData.result || "",
+				).toLowerCase();
+				const msg = String(resData.message || "").toLowerCase();
+
+				let newIstemId = resData.user_id
+					? String(resData.user_id)
+					: user.istemId;
+
+				// If user already exists in I-STEM, adopt their existing I-STEM user ID
+				if (
+					isNew &&
+					(msg.includes("already exists") ||
+						msg.includes("already exist")) &&
+					resData.data?.[0]?.user_id
+				) {
+					newIstemId = String(resData.data[0].user_id);
+				} else if (statusStr !== "success" && statusStr !== "sucess") {
 					throw new Error(
 						resData.message ||
 							resData.error ||
 							"I-STEM Sync Failed",
 					);
 				}
-
-				const newIstemId = resData.user_id
-					? String(resData.user_id)
-					: user.istemId;
 
 				if (isNew && !newIstemId) {
 					throw new Error(
