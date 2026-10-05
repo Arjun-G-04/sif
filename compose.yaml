@@ -22,7 +22,7 @@ services:
     volumes:
       - db_data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U db_user -d sif" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -36,8 +36,25 @@ services:
     depends_on:
       - db
 
+  db-backup:
+    image: prodrigestivill/postgres-backup-local:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: sif
+      POSTGRES_USER: db_user
+      POSTGRES_PASSWORD: ${DB_PASS}
+      SCHEDULE: '@daily'
+      BACKUP_KEEP_DAYS: 7
+      BACKUP_DIR: /backups
+    volumes:
+      - ./backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+
   migrator:
-    profiles: ["tools"]
+    profiles: [ "tools" ]
     build:
       context: .
       target: migrator
@@ -51,3 +68,4 @@ services:
 volumes:
   db_data:
   media_data:
+  backups:
