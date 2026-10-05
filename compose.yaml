@@ -22,7 +22,7 @@ services:
     volumes:
       - db_data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U db_user -d sif"]
+      test: [ "CMD-SHELL", "pg_isready -U db_user -d sif" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -48,7 +48,7 @@ services:
       BACKUP_KEEP_DAYS: 7
       BACKUP_DIR: /backups
     volumes:
-      - ./db_backups:/backups
+      - ./backups:/backups
     depends_on:
       db:
         condition: service_healthy
@@ -68,4 +68,4 @@ services:
 volumes:
   db_data:
   media_data:
-  db_backups:
+  backups:
