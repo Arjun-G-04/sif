@@ -1,11 +1,12 @@
 import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
 import { hash } from "bcrypt";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, ilike, isNull, not, or, sql } from "drizzle-orm";
 import * as z from "zod";
 import { sendEmail } from "@/lib/email";
 import { db } from "../db";
 import {
 	fieldResponses,
+	fields,
 	otpVerifications,
 	registrations,
 	users,
@@ -29,15 +30,156 @@ export const submitRegistration = createServerFn({ method: "POST" })
 			);
 		}
 
+		const cleanEmail = email.trim().toLowerCase();
+		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+		if (!emailRegex.test(cleanEmail)) {
+			throw new Error("Invalid email format");
+		}
+
+		// Validate phone number format (exactly 10 digits)
+		const digits = phone.replace(/\D/g, "");
+		const cleanPhone =
+			digits.length === 12 && digits.startsWith("91")
+				? digits.slice(2)
+				: digits;
+		if (cleanPhone.length !== 10) {
+			throw new Error("Phone number must be exactly 10 digits");
+		}
+
 		// 1. Check if user already exists
 		const [existingUser] = await db
-			.select()
+			.select({ id: users.id })
 			.from(users)
-			.where(eq(users.username, email))
+			.where(ilike(users.username, cleanEmail))
 			.limit(1);
 
 		if (existingUser) {
 			throw new Error("A user with this email already exists");
+		}
+
+		// Check if registration with this email already exists
+		const [existingRegEmail] = await db
+			.select({ id: registrations.id })
+			.from(registrations)
+			.where(
+				and(
+					ilike(registrations.email, cleanEmail),
+					or(
+						isNull(registrations.accepted),
+						eq(registrations.accepted, true),
+					),
+				),
+			)
+			.limit(1);
+
+		if (existingRegEmail) {
+			throw new Error("A registration with this email already exists");
+		}
+
+		// Check if this primary email is already registered as an alternate email
+		const [existingAltEmail] = await db
+			.select({ id: fieldResponses.id })
+			.from(fieldResponses)
+			.innerJoin(fields, eq(fieldResponses.fieldId, fields.id))
+			.innerJoin(
+				registrations,
+				eq(fieldResponses.entityId, registrations.id),
+			)
+			.where(
+				and(
+					eq(fieldResponses.entityType, "registration"),
+					ilike(fields.name, "%email%"),
+					not(ilike(fields.name, "%supervisor%")),
+					not(ilike(fields.name, "%guide%")),
+					not(ilike(fields.name, "%hod%")),
+					not(ilike(fields.name, "%head%")),
+					not(ilike(fields.name, "%faculty%")),
+					not(ilike(fields.name, "%pi%")),
+					not(ilike(fields.name, "%referee%")),
+					not(ilike(fields.name, "%emergency%")),
+					ilike(fieldResponses.value, cleanEmail),
+					or(
+						isNull(registrations.accepted),
+						eq(registrations.accepted, true),
+					),
+				),
+			)
+			.limit(1);
+
+		if (existingAltEmail) {
+			throw new Error(
+				"A registration with this email already exists as an alternate contact",
+			);
+		}
+
+		// Check if registration with this phone already exists
+		const [existingRegPhone] = await db
+			.select({ id: registrations.id })
+			.from(registrations)
+			.where(
+				and(
+					eq(registrations.phone, cleanPhone),
+					or(
+						isNull(registrations.accepted),
+						eq(registrations.accepted, true),
+					),
+				),
+			)
+			.limit(1);
+
+		if (existingRegPhone) {
+			throw new Error(
+				"A registration with this phone number already exists",
+			);
+		}
+
+		// Check if this primary phone is already registered as an alternate phone
+		const altPhoneCondition =
+			cleanPhone.length >= 10
+				? or(
+						sql`RIGHT(regexp_replace(${fieldResponses.value}, '[^0-9]', '', 'g'), 10) = ${cleanPhone.slice(-10)}`,
+						eq(fieldResponses.value, cleanPhone),
+						eq(fieldResponses.value, phone.trim()),
+					)
+				: eq(fieldResponses.value, phone.trim());
+
+		const [existingAltPhone] = await db
+			.select({ id: fieldResponses.id })
+			.from(fieldResponses)
+			.innerJoin(fields, eq(fieldResponses.fieldId, fields.id))
+			.innerJoin(
+				registrations,
+				eq(fieldResponses.entityId, registrations.id),
+			)
+			.where(
+				and(
+					eq(fieldResponses.entityType, "registration"),
+					or(
+						ilike(fields.name, "%phone%"),
+						ilike(fields.name, "%mobile%"),
+						ilike(fields.name, "%contact%"),
+					),
+					not(ilike(fields.name, "%supervisor%")),
+					not(ilike(fields.name, "%guide%")),
+					not(ilike(fields.name, "%hod%")),
+					not(ilike(fields.name, "%head%")),
+					not(ilike(fields.name, "%faculty%")),
+					not(ilike(fields.name, "%pi%")),
+					not(ilike(fields.name, "%referee%")),
+					not(ilike(fields.name, "%emergency%")),
+					altPhoneCondition,
+					or(
+						isNull(registrations.accepted),
+						eq(registrations.accepted, true),
+					),
+				),
+			)
+			.limit(1);
+
+		if (existingAltPhone) {
+			throw new Error(
+				"A registration with this phone number already exists as an alternate contact",
+			);
 		}
 
 		// 2. Verify Email OTP
@@ -47,71 +189,72 @@ export const submitRegistration = createServerFn({ method: "POST" })
 			.where(
 				and(
 					eq(otpVerifications.type, "email"),
-					eq(otpVerifications.target, email),
+					ilike(otpVerifications.target, cleanEmail),
 					eq(otpVerifications.verified, true),
 				),
 			)
-			.orderBy(otpVerifications.createdAt)
+			.orderBy(desc(otpVerifications.createdAt))
 			.limit(1);
 
 		if (!emailVerification) {
 			throw new Error("Email has not been verified with OTP");
 		}
 
-		// Validate phone number format (exactly 10 digits)
-		const phoneDigits = phone.replace(/\D/g, "");
-		if (phoneDigits.length !== 10) {
-			throw new Error("Phone number must be exactly 10 digits");
-		}
-
 		// Hash password
 		const hashedPassword = await hash(password, 10);
 
-		// Insert registration record
-		const [registration] = await db
-			.insert(registrations)
-			.values({
-				password: hashedPassword,
-				email,
-				phone: phoneDigits,
-			})
-			.returning({ id: registrations.id });
+		let createdRegistrationId = 0;
 
-		// Parse form data using the shared helper
-		const fieldEntries = await parseFieldResponses(
-			formData,
-			"registration",
-			undefined, // No specific entity ID for registration fields
-			`registrations/${registration.id}`,
-			{
-				skipKeys: ["username", "password", "email", "phone"],
-				stage: "initial",
-			},
-		);
+		await db.transaction(async (tx) => {
+			// Insert registration record
+			const [registration] = await tx
+				.insert(registrations)
+				.values({
+					password: hashedPassword,
+					email: cleanEmail,
+					phone: cleanPhone,
+				})
+				.returning({ id: registrations.id });
 
-		// Insert all field responses
-		if (fieldEntries.length > 0) {
-			await db.insert(fieldResponses).values(
-				fieldEntries.map((entry) => ({
-					entityType: "registration" as const,
-					entityId: registration.id,
-					fieldId: entry.fieldId,
-					value: entry.value,
-					iteration: entry.iteration,
-				})),
+			createdRegistrationId = registration.id;
+
+			// Parse form data using the shared helper (includes dynamic fields email/phone uniqueness validation)
+			const fieldEntries = await parseFieldResponses(
+				formData,
+				"registration",
+				undefined, // No specific entity ID for registration fields
+				`registrations/${registration.id}`,
+				{
+					skipKeys: ["username", "password", "email", "phone"],
+					stage: "initial",
+					registrationId: registration.id,
+				},
 			);
-		}
+
+			// Insert all field responses
+			if (fieldEntries.length > 0) {
+				await tx.insert(fieldResponses).values(
+					fieldEntries.map((entry) => ({
+						entityType: "registration" as const,
+						entityId: registration.id,
+						fieldId: entry.fieldId,
+						value: entry.value,
+						iteration: entry.iteration,
+					})),
+				);
+			}
+		});
 
 		const config = await getConfigHelper();
 		if (config?.officeEmail) {
 			await sendEmail({
 				to: config.officeEmail,
 				subject: "New Registration",
-				message: `A new registration (ID: ${registration.id}) has been submitted.`,
+				message: `A new registration (ID: ${createdRegistrationId}) has been submitted.`,
 			});
 		}
 
-		return { success: true, registrationId: registration.id };
+		return { success: true, registrationId: createdRegistrationId };
 	});
 
 export const getRegistrations = createServerFn({ method: "GET" }).handler(

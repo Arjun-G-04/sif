@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  nitro@3.0.1-alpha.1: a9c7b57b6e0b8593b20348091a26310b1d7999b7592f71462f5c602204096aeb
+
 importers:
 
   .:
@@ -157,7 +160,7 @@ importers:
         version: 0.4.6(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       nitro:
         specifier: latest
-        version: 3.0.1-alpha.1(drizzle-orm@0.45.1(@types/pg@8.16.0)(pg@8.16.3))(lru-cache@11.2.4)(rollup@4.54.0)(vite@7.3.0(@types/node@22.19.3)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+        version: 3.0.1-alpha.1(patch_hash=a9c7b57b6e0b8593b20348091a26310b1d7999b7592f71462f5c602204096aeb)(drizzle-orm@0.45.1(@types/pg@8.16.0)(pg@8.16.3))(lru-cache@11.2.4)(rollup@4.54.0)(vite@7.3.0(@types/node@22.19.3)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
       nodemailer:
         specifier: ^7.0.12
         version: 7.0.12
@@ -8380,7 +8383,7 @@ snapshots:
 
   nf3@0.1.12: {}
 
-  nitro@3.0.1-alpha.1(drizzle-orm@0.45.1(@types/pg@8.16.0)(pg@8.16.3))(lru-cache@11.2.4)(rollup@4.54.0)(vite@7.3.0(@types/node@22.19.3)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2)):
+  nitro@3.0.1-alpha.1(patch_hash=a9c7b57b6e0b8593b20348091a26310b1d7999b7592f71462f5c602204096aeb)(drizzle-orm@0.45.1(@types/pg@8.16.0)(pg@8.16.3))(lru-cache@11.2.4)(rollup@4.54.0)(vite@7.3.0(@types/node@22.19.3)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2)):
     dependencies:
       consola: 3.4.2
       crossws: 0.4.1(srvx@0.9.8)
