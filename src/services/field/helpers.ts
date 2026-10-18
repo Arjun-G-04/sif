@@ -24,28 +24,42 @@ import {
 } from "../../db/schema";
 import type { FieldEntry } from "./types";
 
-export const isUniqueField = (name: string): boolean => {
-	const lower = name.toLowerCase().trim();
-	return (
-		/email|phone|mobile|contact/i.test(lower) &&
-		!/supervisor|guide|hod|head|faculty|pi|referee|emergency/i.test(lower)
-	);
+export const getAlternateEmailFieldId = (): number | null => {
+	const raw = (
+		process.env.EMAIL_FIELD_ID || process.env.ALTERNATE_EMAIL_FIELD_ID
+	)
+		?.replace(/['"]/g, "")
+		.trim();
+	if (!raw) return null;
+	const id = Number.parseInt(raw, 10);
+	return Number.isNaN(id) ? null : id;
 };
 
-export const isEmailField = (name: string): boolean => {
-	const lower = name.toLowerCase().trim();
-	return (
-		/email/i.test(lower) &&
-		!/supervisor|guide|hod|head|faculty|pi|referee|emergency/i.test(lower)
-	);
+export const getAlternatePhoneFieldId = (): number | null => {
+	const raw = (
+		process.env.PHONE_NO_ID ||
+		process.env.PHONE_FIELD_ID ||
+		process.env.ALTERNATE_PHONE_FIELD_ID
+	)
+		?.replace(/['"]/g, "")
+		.trim();
+	if (!raw) return null;
+	const id = Number.parseInt(raw, 10);
+	return Number.isNaN(id) ? null : id;
 };
 
-export const isPhoneField = (name: string): boolean => {
-	const lower = name.toLowerCase().trim();
-	return (
-		/phone|mobile|contact/i.test(lower) &&
-		!/supervisor|guide|hod|head|faculty|pi|referee|emergency/i.test(lower)
-	);
+export const isEmailField = (fieldId: number): boolean => {
+	const targetId = getAlternateEmailFieldId();
+	return targetId !== null && fieldId === targetId;
+};
+
+export const isPhoneField = (fieldId: number): boolean => {
+	const targetId = getAlternatePhoneFieldId();
+	return targetId !== null && fieldId === targetId;
+};
+
+export const isUniqueField = (fieldId: number): boolean => {
+	return isEmailField(fieldId) || isPhoneField(fieldId);
 };
 
 export const checkFieldUniqueness = createServerOnlyFn(
@@ -58,8 +72,8 @@ export const checkFieldUniqueness = createServerOnlyFn(
 		const trimmed = value.trim();
 		if (!trimmed) return;
 
-		const isEmail = isEmailField(fieldName);
-		const isPhone = isPhoneField(fieldName);
+		const isEmail = isEmailField(fieldId);
+		const isPhone = isPhoneField(fieldId);
 
 		// 1. Check uniqueness within fieldResponses (across active or pending registrations)
 		const cleanPhone = isPhone ? trimmed.replace(/\D/g, "") : "";
@@ -485,10 +499,10 @@ export const parseFieldResponses = createServerOnlyFn(
 			for (const entry of fieldEntries) {
 				if (!entry.value || typeof entry.value !== "string") continue;
 				const field = fieldIdToField.get(String(entry.fieldId));
-				if (field && isUniqueField(field.name)) {
-					const normalized = isEmailField(field.name)
+				if (field && isUniqueField(field.id)) {
+					const normalized = isEmailField(field.id)
 						? entry.value.trim().toLowerCase()
-						: isPhoneField(field.name)
+						: isPhoneField(field.id)
 							? entry.value.replace(/\D/g, "").slice(-10) ||
 								entry.value.trim()
 							: entry.value.trim();

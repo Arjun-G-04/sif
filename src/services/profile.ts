@@ -263,7 +263,7 @@ export const updateUserProfile = createServerFn({ method: "POST" })
 		// 5.5 Check uniqueness for dynamic registration fields like email or phone
 		for (const item of updatesToPerform) {
 			const field = fieldMap.get(item.fieldId);
-			if (field && isUniqueField(field.name)) {
+			if (field && isUniqueField(field.id)) {
 				await checkFieldUniqueness(
 					item.fieldId,
 					item.value,

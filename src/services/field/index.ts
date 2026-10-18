@@ -35,5 +35,7 @@ export {
 	isUniqueField,
 	isEmailField,
 	isPhoneField,
+	getAlternateEmailFieldId,
+	getAlternatePhoneFieldId,
 	checkFieldUniqueness,
 } from "./helpers";

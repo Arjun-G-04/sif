@@ -1,19 +1,22 @@
 import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
 import { hash } from "bcrypt";
-import { and, desc, eq, ilike, isNull, not, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
 import * as z from "zod";
 import { sendEmail } from "@/lib/email";
-import { db } from "../db";
 import {
 	fieldResponses,
-	fields,
 	otpVerifications,
 	registrations,
 	users,
 } from "../db/schema";
 import { requireAdmin } from "../lib/auth";
 import { safeParseAndThrow } from "../lib/utils";
-import { getFieldResponses, parseFieldResponses } from "./field";
+import {
+	getAlternateEmailFieldId,
+	getAlternatePhoneFieldId,
+	getFieldResponses,
+	parseFieldResponses,
+} from "./field";
 import { getConfigHelper } from "./configuration";
 
 export const submitRegistration = createServerFn({ method: "POST" })
@@ -77,39 +80,33 @@ export const submitRegistration = createServerFn({ method: "POST" })
 		}
 
 		// Check if this primary email is already registered as an alternate email
-		const [existingAltEmail] = await db
-			.select({ id: fieldResponses.id })
-			.from(fieldResponses)
-			.innerJoin(fields, eq(fieldResponses.fieldId, fields.id))
-			.innerJoin(
-				registrations,
-				eq(fieldResponses.entityId, registrations.id),
-			)
-			.where(
-				and(
-					eq(fieldResponses.entityType, "registration"),
-					ilike(fields.name, "%email%"),
-					not(ilike(fields.name, "%supervisor%")),
-					not(ilike(fields.name, "%guide%")),
-					not(ilike(fields.name, "%hod%")),
-					not(ilike(fields.name, "%head%")),
-					not(ilike(fields.name, "%faculty%")),
-					not(ilike(fields.name, "%pi%")),
-					not(ilike(fields.name, "%referee%")),
-					not(ilike(fields.name, "%emergency%")),
-					ilike(fieldResponses.value, cleanEmail),
-					or(
-						isNull(registrations.accepted),
-						eq(registrations.accepted, true),
+		const altEmailFieldId = getAlternateEmailFieldId();
+		if (altEmailFieldId !== null) {
+			const [existingAltEmail] = await db
+				.select({ id: fieldResponses.id })
+				.from(fieldResponses)
+				.innerJoin(
+					registrations,
+					eq(fieldResponses.entityId, registrations.id),
+				)
+				.where(
+					and(
+						eq(fieldResponses.entityType, "registration"),
+						eq(fieldResponses.fieldId, altEmailFieldId),
+						ilike(fieldResponses.value, cleanEmail),
+						or(
+							isNull(registrations.accepted),
+							eq(registrations.accepted, true),
+						),
 					),
-				),
-			)
-			.limit(1);
+				)
+				.limit(1);
 
-		if (existingAltEmail) {
-			throw new Error(
-				"A registration with this email already exists as an alternate contact",
-			);
+			if (existingAltEmail) {
+				throw new Error(
+					"A registration with this email already exists as an alternate contact",
+				);
+			}
 		}
 
 		// Check if registration with this phone already exists
@@ -134,52 +131,42 @@ export const submitRegistration = createServerFn({ method: "POST" })
 		}
 
 		// Check if this primary phone is already registered as an alternate phone
-		const altPhoneCondition =
-			cleanPhone.length >= 10
-				? or(
-						sql`RIGHT(regexp_replace(${fieldResponses.value}, '[^0-9]', '', 'g'), 10) = ${cleanPhone.slice(-10)}`,
-						eq(fieldResponses.value, cleanPhone),
-						eq(fieldResponses.value, phone.trim()),
-					)
-				: eq(fieldResponses.value, phone.trim());
+		const altPhoneFieldId = getAlternatePhoneFieldId();
+		if (altPhoneFieldId !== null) {
+			const altPhoneCondition =
+				cleanPhone.length >= 10
+					? or(
+							sql`RIGHT(regexp_replace(${fieldResponses.value}, '[^0-9]', '', 'g'), 10) = ${cleanPhone.slice(-10)}`,
+							eq(fieldResponses.value, cleanPhone),
+							eq(fieldResponses.value, phone.trim()),
+						)
+					: eq(fieldResponses.value, phone.trim());
 
-		const [existingAltPhone] = await db
-			.select({ id: fieldResponses.id })
-			.from(fieldResponses)
-			.innerJoin(fields, eq(fieldResponses.fieldId, fields.id))
-			.innerJoin(
-				registrations,
-				eq(fieldResponses.entityId, registrations.id),
-			)
-			.where(
-				and(
-					eq(fieldResponses.entityType, "registration"),
-					or(
-						ilike(fields.name, "%phone%"),
-						ilike(fields.name, "%mobile%"),
-						ilike(fields.name, "%contact%"),
+			const [existingAltPhone] = await db
+				.select({ id: fieldResponses.id })
+				.from(fieldResponses)
+				.innerJoin(
+					registrations,
+					eq(fieldResponses.entityId, registrations.id),
+				)
+				.where(
+					and(
+						eq(fieldResponses.entityType, "registration"),
+						eq(fieldResponses.fieldId, altPhoneFieldId),
+						altPhoneCondition,
+						or(
+							isNull(registrations.accepted),
+							eq(registrations.accepted, true),
+						),
 					),
-					not(ilike(fields.name, "%supervisor%")),
-					not(ilike(fields.name, "%guide%")),
-					not(ilike(fields.name, "%hod%")),
-					not(ilike(fields.name, "%head%")),
-					not(ilike(fields.name, "%faculty%")),
-					not(ilike(fields.name, "%pi%")),
-					not(ilike(fields.name, "%referee%")),
-					not(ilike(fields.name, "%emergency%")),
-					altPhoneCondition,
-					or(
-						isNull(registrations.accepted),
-						eq(registrations.accepted, true),
-					),
-				),
-			)
-			.limit(1);
+				)
+				.limit(1);
 
-		if (existingAltPhone) {
-			throw new Error(
-				"A registration with this phone number already exists as an alternate contact",
-			);
+			if (existingAltPhone) {
+				throw new Error(
+					"A registration with this phone number already exists as an alternate contact",
+				);
+			}
 		}
 
 		// 2. Verify Email OTP
