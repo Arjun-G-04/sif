@@ -7,6 +7,7 @@ import {
 	registrations,
 	users,
 } from "@/db/schema";
+import { requireAdmin } from "@/lib/auth";
 import {
 	ISTEM_BASE_URL,
 	formatToLocalIstemTime,
@@ -29,6 +30,12 @@ import {
 
 export type SyncType = "users" | "equipments" | "bookings";
 
+export interface SyncJobError {
+	category: SyncType | "general";
+	target: string;
+	message: string;
+}
+
 export interface SyncJobState {
 	id: string;
 	type: SyncType;
@@ -37,7 +44,7 @@ export interface SyncJobState {
 	processed: number;
 	successCount: number;
 	failCount: number;
-	errors: string[];
+	errors: SyncJobError[];
 	startedAt: string | null;
 	completedAt: string | null;
 }
@@ -75,7 +82,16 @@ function setAbortController(controller: AbortController | null) {
 	globalThis.__istemAbortController = controller;
 }
 
-export async function getValidIstemToken(): Promise<string> {
+let cachedIstemToken: { token: string; expiresAt: Date } | null = null;
+
+async function getValidIstemToken(): Promise<string> {
+	if (
+		cachedIstemToken &&
+		Date.now() + 60_000 < cachedIstemToken.expiresAt.getTime()
+	) {
+		return cachedIstemToken.token;
+	}
+
 	const [config] = await db
 		.select()
 		.from(configurations)
@@ -86,12 +102,14 @@ export async function getValidIstemToken(): Promise<string> {
 		throw new Error("I-STEM authentication missing. Please authenticate.");
 	}
 
-	if (new Date() > new Date(config.istemTokenExpiresAt)) {
+	const expiresAt = new Date(config.istemTokenExpiresAt);
+	if (new Date() > expiresAt) {
 		throw new Error(
 			"I-STEM authentication expired. Please re-authenticate.",
 		);
 	}
 
+	cachedIstemToken = { token: config.istemToken, expiresAt };
 	return config.istemToken;
 }
 
@@ -106,8 +124,10 @@ function assertIstemResponse(resData: IstemApiResponse, fallbackMsg: string) {
 
 // Generic Batch Sync Runner: handles lifecycle, aborts, and counts
 async function runBatchSync<T>(
+	category: SyncType,
 	items: T[],
 	signal: AbortSignal,
+	getItemTarget: (item: T) => string,
 	processItem: (item: T, token: string) => Promise<void>,
 ) {
 	for (const item of items) {
@@ -126,13 +146,18 @@ async function runBatchSync<T>(
 			if (job) job.successCount++;
 		} catch (err) {
 			if (signal.aborted) return;
-			const errorMessage = getErrorMessage(err);
+			const target = getItemTarget(item);
+			const rawError = getErrorMessage(err);
 			if (job) {
 				job.failCount++;
-				job.errors.push(errorMessage);
+				job.errors.push({
+					category,
+					target,
+					message: rawError,
+				});
 			}
 		} finally {
-			if (job) job.processed++;
+			if (job && !signal.aborted) job.processed++;
 		}
 	}
 
@@ -158,7 +183,7 @@ async function syncUserItem(
 		.where(eq(users.id, user.id));
 
 	if (!freshUser) {
-		throw new Error(`User ID ${user.id} no longer exists.`);
+		throw new Error("Record no longer exists in database.");
 	}
 
 	const isNew = !freshUser.istemId;
@@ -193,7 +218,7 @@ async function syncUserItem(
 	});
 
 	if (!response.ok) {
-		throw new Error(`User ID ${user.id}: I-STEM HTTP ${response.status}`);
+		throw new Error(`I-STEM HTTP ${response.status}`);
 	}
 
 	const resData = (await response.json()) as IstemApiResponse;
@@ -209,13 +234,11 @@ async function syncUserItem(
 	) {
 		newIstemId = String(resData.data[0].user_id);
 	} else {
-		assertIstemResponse(resData, `User ID ${user.id}: Sync failed`);
+		assertIstemResponse(resData, "Sync failed on I-STEM");
 	}
 
 	if (isNew && !newIstemId) {
-		throw new Error(
-			`User ID ${user.id}: Sync succeeded but user_id was not returned`,
-		);
+		throw new Error("Sync succeeded but user_id was not returned");
 	}
 
 	await db
@@ -238,7 +261,7 @@ async function syncEquipmentItem(
 		.where(eq(equipments.id, eqRow.id));
 
 	if (!freshEq) {
-		throw new Error(`Equipment ID ${eqRow.id} no longer exists.`);
+		throw new Error("Record no longer exists in database.");
 	}
 
 	const isNew = !freshEq.istemId;
@@ -272,19 +295,15 @@ async function syncEquipmentItem(
 	});
 
 	if (!response.ok) {
-		throw new Error(
-			`Equipment ID ${eqRow.id}: I-STEM HTTP ${response.status}`,
-		);
+		throw new Error(`I-STEM HTTP ${response.status}`);
 	}
 
 	const resData = (await response.json()) as IstemApiResponse;
-	assertIstemResponse(resData, `Equipment ID ${eqRow.id}: Sync failed`);
+	assertIstemResponse(resData, "Sync failed on I-STEM");
 
 	const newIstemId = resData.id ? String(resData.id) : freshEq.istemId;
 	if (isNew && !newIstemId) {
-		throw new Error(
-			`Equipment ID ${eqRow.id}: Sync succeeded but equipment id was not returned`,
-		);
+		throw new Error("Sync succeeded but equipment id was not returned");
 	}
 
 	if (!isNew && newIstemId) {
@@ -297,15 +316,27 @@ async function syncEquipmentItem(
 			formatToLocalIstemTime(new Date()),
 		);
 
-		await istemFetch(`${ISTEM_BASE_URL}/api/equipment-status-update`, {
-			method: "POST",
-			headers: {
-				Token: token,
-				"Content-Type": "application/x-www-form-urlencoded",
+		const statusRes = await istemFetch(
+			`${ISTEM_BASE_URL}/api/equipment-status-update`,
+			{
+				method: "POST",
+				headers: {
+					Token: token,
+					"Content-Type": "application/x-www-form-urlencoded",
+				},
+				body: statusForm.toString(),
+				signal,
 			},
-			body: statusForm.toString(),
-			signal,
-		});
+		);
+
+		if (!statusRes.ok) {
+			throw new Error(`Equipment status update HTTP ${statusRes.status}`);
+		}
+		const statusData = (await statusRes.json()) as IstemApiResponse;
+		assertIstemResponse(
+			statusData,
+			"Equipment status update failed on I-STEM",
+		);
 	}
 
 	await db
@@ -328,12 +359,12 @@ async function syncBookingItem(
 	const { booking, user, equipment } = row;
 	if (!user?.istemId) {
 		throw new Error(
-			`Booking ID ${booking.id}: Linked user (${user?.username ?? booking.userId}) not synced to I-STEM.`,
+			`Linked user (${user?.username ?? booking.userId}) not synced to I-STEM.`,
 		);
 	}
 	if (!equipment?.istemId) {
 		throw new Error(
-			`Booking ID ${booking.id}: Linked equipment (${equipment?.name ?? booking.equipmentId}) not synced to I-STEM.`,
+			`Linked equipment (${equipment?.name ?? booking.equipmentId}) not synced to I-STEM.`,
 		);
 	}
 
@@ -348,7 +379,7 @@ async function syncBookingItem(
 		.where(eq(bookings.id, booking.id));
 
 	if (!freshBooking) {
-		throw new Error(`Booking ID ${booking.id} no longer exists.`);
+		throw new Error("Record no longer exists in database.");
 	}
 
 	const isNew = !freshBooking.istemId;
@@ -383,10 +414,7 @@ async function syncBookingItem(
 		);
 
 		const cancelData = (await cancelRes.json()) as IstemApiResponse;
-		assertIstemResponse(
-			cancelData,
-			`Booking ID ${booking.id}: Cancellation failed`,
-		);
+		assertIstemResponse(cancelData, "Cancellation failed on I-STEM");
 
 		await db
 			.update(bookings)
@@ -443,22 +471,15 @@ async function syncBookingItem(
 	});
 
 	if (!response.ok) {
-		throw new Error(
-			`Booking ID ${booking.id}: I-STEM HTTP ${response.status}`,
-		);
+		throw new Error(`I-STEM HTTP ${response.status}`);
 	}
 
 	const resData = (await response.json()) as IstemApiResponse;
-	assertIstemResponse(
-		resData,
-		`Booking ID ${booking.id}: Creation failed on I-STEM`,
-	);
+	assertIstemResponse(resData, "Creation failed on I-STEM");
 
 	const rawId = resData.new_service_id || resData.id;
 	if (isNew && !rawId) {
-		throw new Error(
-			`Booking ID ${booking.id}: Sync succeeded but booking id was not returned`,
-		);
+		throw new Error("Sync succeeded but booking id was not returned");
 	}
 
 	const newIstemId = rawId ? String(rawId) : booking.istemId;
@@ -467,6 +488,171 @@ async function syncBookingItem(
 		.set({ istemId: newIstemId, istemSyncedAt: new Date() })
 		.where(eq(bookings.id, booking.id));
 }
+
+// Declarative Sync Strategies
+interface SyncStrategy<T> {
+	validate: (
+		config: typeof configurations.$inferSelect | undefined,
+	) => Promise<void> | void;
+	fetchUnsynced: () => Promise<T[]>;
+	emptyMessage: string;
+	getItemTarget: (item: T) => string;
+	syncItem: (
+		item: T,
+		token: string,
+		signal: AbortSignal,
+		config: typeof configurations.$inferSelect | undefined,
+	) => Promise<void>;
+}
+
+// biome-ignore lint/suspicious/noExplicitAny: polymorphic sync strategy dictionary
+const SYNC_STRATEGIES: Record<SyncType, SyncStrategy<any>> = {
+	users: {
+		validate: (config) => {
+			const mapping =
+				(config?.istemUserMapping as Record<string, string>) || {};
+			for (const key of USER_API_FIELD_KEYS) {
+				if (!mapping[key] || mapping[key] === "default") {
+					throw new Error(
+						`Cannot sync users: User field mapping "${key}" is unmapped.`,
+					);
+				}
+			}
+		},
+		fetchUnsynced: () =>
+			db
+				.select({
+					user: users,
+					registration: registrations,
+				})
+				.from(users)
+				.leftJoin(
+					registrations,
+					eq(users.registrationId, registrations.id),
+				)
+				.where(
+					and(
+						eq(users.role, "public"),
+						or(
+							isNull(users.istemId),
+							gt(users.updatedAt, users.istemSyncedAt),
+						),
+					),
+				),
+		emptyMessage: "No unsynced users found.",
+		getItemTarget: (row: UserSyncRow) => {
+			const regId = row.user.registrationId;
+			const idPart = regId
+				? `Registration No. #${regId}`
+				: `User ID #${row.user.id}`;
+			const emailPart = row.registration?.email
+				? `, ${row.registration.email}`
+				: "";
+			return `${idPart} ("${row.user.username}"${emailPart})`;
+		},
+		syncItem: (row: UserSyncRow, token, signal, config) =>
+			syncUserItem(
+				row,
+				token,
+				(config?.istemUserMapping as Record<string, string>) || {},
+				(config?.istemStaticDefaults as Record<string, string>) || {},
+				signal,
+			),
+	},
+	equipments: {
+		validate: (config) => {
+			const mapping =
+				(config?.istemEquipmentMapping as Record<string, string>) || {};
+			for (const key of EQUIPMENT_API_FIELD_KEYS) {
+				if (!mapping[key] || mapping[key] === "default") {
+					throw new Error(
+						`Cannot sync equipments: Equipment field mapping "${key}" is unmapped.`,
+					);
+				}
+			}
+		},
+		fetchUnsynced: () =>
+			db
+				.select()
+				.from(equipments)
+				.where(
+					or(
+						isNull(equipments.istemId),
+						gt(equipments.updatedAt, equipments.istemSyncedAt),
+					),
+				),
+		emptyMessage: "No unsynced equipments found.",
+		getItemTarget: (eqRow: typeof equipments.$inferSelect) =>
+			`Equipment Code: "${eqRow.code}" (ID #${eqRow.id}, "${eqRow.name}")`,
+		syncItem: (
+			eqRow: typeof equipments.$inferSelect,
+			token,
+			signal,
+			config,
+		) =>
+			syncEquipmentItem(
+				eqRow,
+				token,
+				(config?.istemEquipmentMapping as Record<string, string>) || {},
+				(config?.istemStaticDefaults as Record<string, string>) || {},
+				signal,
+			),
+	},
+	bookings: {
+		validate: async () => {
+			const allEqs = await db.select().from(equipments);
+			for (const eq of allEqs) {
+				const eqMapping =
+					(eq.istemBookingMapping as Record<string, string>) || {};
+				for (const key of BOOKING_API_FIELD_KEYS) {
+					if (!eqMapping[key] || eqMapping[key] === "default") {
+						throw new Error(
+							`Cannot sync bookings: Booking field mapping "${key}" is unmapped for equipment "${eq.name}".`,
+						);
+					}
+				}
+			}
+		},
+		fetchUnsynced: () =>
+			db
+				.select({
+					booking: bookings,
+					user: users,
+					equipment: equipments,
+				})
+				.from(bookings)
+				.leftJoin(users, eq(bookings.userId, users.id))
+				.leftJoin(equipments, eq(bookings.equipmentId, equipments.id))
+				.where(
+					or(
+						isNull(bookings.istemId),
+						gt(bookings.updatedAt, bookings.istemSyncedAt),
+					),
+				),
+		emptyMessage: "No unsynced bookings found.",
+		getItemTarget: (row: {
+			booking: typeof bookings.$inferSelect;
+			user: typeof users.$inferSelect | null;
+			equipment: typeof equipments.$inferSelect | null;
+		}) => {
+			const eqName =
+				row.equipment?.name ?? `Equipment #${row.booking.equipmentId}`;
+			const userName =
+				row.user?.username ??
+				(row.booking.userId
+					? `User #${row.booking.userId}`
+					: "Unknown User");
+			return `Booking No. #${row.booking.id} ("${eqName}", User: "${userName}")`;
+		},
+		syncItem: (row, token, signal, config) =>
+			syncBookingItem(
+				row,
+				token,
+				(config?.istemStaticDefaults as Record<string, string>) || {},
+				signal,
+			),
+	},
+};
 
 // Server-only exported background sync triggers
 export const startBackgroundSync = createServerOnlyFn(
@@ -478,6 +664,8 @@ export const startBackgroundSync = createServerOnlyFn(
 		total: number;
 		message?: string;
 	}> => {
+		await requireAdmin();
+
 		if (globalThis.__istemIsStarting) {
 			throw new Error(
 				"A sync operation is currently starting. Please wait.",
@@ -491,6 +679,11 @@ export const startBackgroundSync = createServerOnlyFn(
 			);
 		}
 
+		const strategy = SYNC_STRATEGIES[type];
+		if (!strategy) {
+			throw new Error(`Unknown sync type: ${type}`);
+		}
+
 		globalThis.__istemIsStarting = true;
 		try {
 			await getValidIstemToken();
@@ -500,252 +693,55 @@ export const startBackgroundSync = createServerOnlyFn(
 				.where(eq(configurations.id, 1))
 				.limit(1);
 
-			if (type === "users") {
-				const mapping =
-					(config?.istemUserMapping as Record<string, string>) || {};
-				const defaults =
-					(config?.istemStaticDefaults as Record<string, string>) ||
-					{};
+			await strategy.validate(config);
+			const items = await strategy.fetchUnsynced();
 
-				for (const key of USER_API_FIELD_KEYS) {
-					if (!mapping[key] || mapping[key] === "default") {
-						throw new Error(
-							`Cannot sync users: User field mapping "${key}" is unmapped.`,
-						);
-					}
-				}
-
-				const unsyncedUsers = await db
-					.select({
-						user: users,
-						registration: registrations,
-					})
-					.from(users)
-					.leftJoin(
-						registrations,
-						eq(users.registrationId, registrations.id),
-					)
-					.where(
-						and(
-							eq(users.role, "public"),
-							or(
-								isNull(users.istemId),
-								gt(users.updatedAt, users.istemSyncedAt),
-							),
-						),
-					);
-
-				if (unsyncedUsers.length === 0) {
-					return {
-						started: false,
-						total: 0,
-						message: "No unsynced users found.",
-					};
-				}
-
-				const controller = new AbortController();
-				setAbortController(controller);
-				const newJob: SyncJobState = {
-					id: Math.random().toString(36).substring(2, 9),
-					type: "users",
-					status: "running",
-					total: unsyncedUsers.length,
-					processed: 0,
-					successCount: 0,
-					failCount: 0,
-					errors: [],
-					startedAt: new Date().toISOString(),
-					completedAt: null,
+			if (items.length === 0) {
+				return {
+					started: false,
+					total: 0,
+					message: strategy.emptyMessage,
 				};
-				setActiveJob(newJob);
-
-				runBatchSync(unsyncedUsers, controller.signal, (row, token) =>
-					syncUserItem(
-						row,
-						token,
-						mapping,
-						defaults,
-						controller.signal,
-					),
-				).catch((err) => {
-					console.error("Users sync failed:", err);
-					const job = getActiveJob();
-					if (job) {
-						job.status = "failed";
-						job.completedAt = new Date().toISOString();
-						job.errors.push(
-							`Fatal sync error: ${getErrorMessage(err)}`,
-						);
-					}
-				});
-
-				return { started: true, jobId: newJob.id, total: newJob.total };
 			}
 
-			if (type === "equipments") {
-				const mapping =
-					(config?.istemEquipmentMapping as Record<string, string>) ||
-					{};
-				const defaults =
-					(config?.istemStaticDefaults as Record<string, string>) ||
-					{};
+			const controller = new AbortController();
+			setAbortController(controller);
+			const newJob: SyncJobState = {
+				id: Math.random().toString(36).substring(2, 9),
+				type,
+				status: "running",
+				total: items.length,
+				processed: 0,
+				successCount: 0,
+				failCount: 0,
+				errors: [],
+				startedAt: new Date().toISOString(),
+				completedAt: null,
+			};
+			setActiveJob(newJob);
 
-				for (const key of EQUIPMENT_API_FIELD_KEYS) {
-					if (!mapping[key] || mapping[key] === "default") {
-						throw new Error(
-							`Cannot sync equipments: Equipment field mapping "${key}" is unmapped.`,
-						);
-					}
+			runBatchSync(
+				type,
+				items,
+				controller.signal,
+				strategy.getItemTarget,
+				(item, token) =>
+					strategy.syncItem(item, token, controller.signal, config),
+			).catch((err) => {
+				console.error(`${type} sync failed:`, err);
+				const job = getActiveJob();
+				if (job) {
+					job.status = "failed";
+					job.completedAt = new Date().toISOString();
+					job.errors.push({
+						category: type,
+						target: "Fatal Error",
+						message: getErrorMessage(err),
+					});
 				}
+			});
 
-				const unsyncedEquipments = await db
-					.select()
-					.from(equipments)
-					.where(
-						or(
-							isNull(equipments.istemId),
-							gt(equipments.updatedAt, equipments.istemSyncedAt),
-						),
-					);
-
-				if (unsyncedEquipments.length === 0) {
-					return {
-						started: false,
-						total: 0,
-						message: "No unsynced equipments found.",
-					};
-				}
-
-				const controller = new AbortController();
-				setAbortController(controller);
-				const newJob: SyncJobState = {
-					id: Math.random().toString(36).substring(2, 9),
-					type: "equipments",
-					status: "running",
-					total: unsyncedEquipments.length,
-					processed: 0,
-					successCount: 0,
-					failCount: 0,
-					errors: [],
-					startedAt: new Date().toISOString(),
-					completedAt: null,
-				};
-				setActiveJob(newJob);
-
-				runBatchSync(
-					unsyncedEquipments,
-					controller.signal,
-					(eqRow, token) =>
-						syncEquipmentItem(
-							eqRow,
-							token,
-							mapping,
-							defaults,
-							controller.signal,
-						),
-				).catch((err) => {
-					console.error("Equipments sync failed:", err);
-					const job = getActiveJob();
-					if (job) {
-						job.status = "failed";
-						job.completedAt = new Date().toISOString();
-						job.errors.push(
-							`Fatal sync error: ${getErrorMessage(err)}`,
-						);
-					}
-				});
-
-				return { started: true, jobId: newJob.id, total: newJob.total };
-			}
-
-			if (type === "bookings") {
-				const defaults =
-					(config?.istemStaticDefaults as Record<string, string>) ||
-					{};
-
-				const allEqs = await db.select().from(equipments);
-				for (const eq of allEqs) {
-					const eqMapping =
-						(eq.istemBookingMapping as Record<string, string>) ||
-						{};
-					for (const key of BOOKING_API_FIELD_KEYS) {
-						if (!eqMapping[key] || eqMapping[key] === "default") {
-							throw new Error(
-								`Cannot sync bookings: Booking field mapping "${key}" is unmapped for equipment "${eq.name}".`,
-							);
-						}
-					}
-				}
-
-				const unsyncedBookings = await db
-					.select({
-						booking: bookings,
-						user: users,
-						equipment: equipments,
-					})
-					.from(bookings)
-					.leftJoin(users, eq(bookings.userId, users.id))
-					.leftJoin(
-						equipments,
-						eq(bookings.equipmentId, equipments.id),
-					)
-					.where(
-						or(
-							isNull(bookings.istemId),
-							gt(bookings.updatedAt, bookings.istemSyncedAt),
-						),
-					);
-
-				if (unsyncedBookings.length === 0) {
-					return {
-						started: false,
-						total: 0,
-						message: "No unsynced bookings found.",
-					};
-				}
-
-				const controller = new AbortController();
-				setAbortController(controller);
-				const newJob: SyncJobState = {
-					id: Math.random().toString(36).substring(2, 9),
-					type: "bookings",
-					status: "running",
-					total: unsyncedBookings.length,
-					processed: 0,
-					successCount: 0,
-					failCount: 0,
-					errors: [],
-					startedAt: new Date().toISOString(),
-					completedAt: null,
-				};
-				setActiveJob(newJob);
-
-				runBatchSync(
-					unsyncedBookings,
-					controller.signal,
-					(row, token) =>
-						syncBookingItem(
-							row,
-							token,
-							defaults,
-							controller.signal,
-						),
-				).catch((err) => {
-					console.error("Bookings sync failed:", err);
-					const job = getActiveJob();
-					if (job) {
-						job.status = "failed";
-						job.completedAt = new Date().toISOString();
-						job.errors.push(
-							`Fatal sync error: ${getErrorMessage(err)}`,
-						);
-					}
-				});
-
-				return { started: true, jobId: newJob.id, total: newJob.total };
-			}
-
-			throw new Error(`Unknown sync type: ${type}`);
+			return { started: true, jobId: newJob.id, total: newJob.total };
 		} finally {
 			globalThis.__istemIsStarting = false;
 		}
@@ -754,12 +750,14 @@ export const startBackgroundSync = createServerOnlyFn(
 
 export const getSyncJobStatus = createServerOnlyFn(
 	async (): Promise<SyncJobState | null> => {
+		await requireAdmin();
 		return getActiveJob();
 	},
 );
 
 export const cancelSyncJob = createServerOnlyFn(
 	async (): Promise<{ cancelled: boolean }> => {
+		await requireAdmin();
 		const current = getActiveJob();
 		if (current && current.status === "running") {
 			const controller = getAbortController();
@@ -774,6 +772,7 @@ export const cancelSyncJob = createServerOnlyFn(
 
 export const clearSyncJob = createServerOnlyFn(
 	async (): Promise<{ cleared: boolean; reason?: string }> => {
+		await requireAdmin();
 		const current = getActiveJob();
 		if (!current) {
 			return { cleared: true };

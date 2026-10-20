@@ -11,6 +11,8 @@ import { FieldMappingsCard } from "@/components/office/sync/FieldMappingsCard";
 import { SyncControlsCard } from "@/components/office/sync/SyncControlsCard";
 import { requireAdmin } from "@/lib/auth";
 import {
+	type SyncJobError,
+	type SyncType,
 	authenticateIstem,
 	cancelSyncJob,
 	clearSyncJob,
@@ -28,7 +30,7 @@ import {
 	useSuspenseQuery,
 } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 export const syncStatusQueryOptions = queryOptions({
@@ -80,10 +82,14 @@ function SyncPage() {
 		Record<string, string>
 	>({});
 
-	// Error Logs state
-	const [diagnosticErrors, setDiagnosticErrors] = useState<string[]>([]);
+	// Error Logs state & tracking
+	const [isLogsCleared, setIsLogsCleared] = useState(false);
+	const [mutationError, setMutationError] = useState<SyncJobError | null>(
+		null,
+	);
 	const [isInitialized, setIsInitialized] = useState(false);
-	const [prevJobState, setPrevJobState] = useState<string | null>(null);
+	const prevJobIdRef = useRef<string | undefined>(undefined);
+	const prevStatusRef = useRef<string | undefined>(undefined);
 
 	// Check if booking mappings changed compared to original database value in each equipment
 	const isBookingMappingsChanged = () => {
@@ -150,34 +156,34 @@ function SyncPage() {
 	useEffect(() => {
 		if (!activeJob) return;
 
-		const key = `${activeJob.id}:${activeJob.status}:${activeJob.completedAt || ""}`;
-		if (key === prevJobState) return;
-		setPrevJobState(key);
+		if (prevJobIdRef.current !== activeJob.id) {
+			prevJobIdRef.current = activeJob.id;
+			setIsLogsCleared(false);
+		}
 
-		if (activeJob.status === "completed") {
-			toast.success(
-				`${activeJob.type} sync completed: ${activeJob.successCount} synced, ${activeJob.failCount} failed.`,
-			);
-			if (activeJob.errors && activeJob.errors.length > 0) {
-				setDiagnosticErrors((prev) => [...prev, ...activeJob.errors]);
+		const prevStatus = prevStatusRef.current;
+		prevStatusRef.current = activeJob.status;
+
+		// Only show completion toasts on actual status transitions
+		if (prevStatus && prevStatus !== activeJob.status) {
+			if (activeJob.status === "completed") {
+				toast.success(
+					`${activeJob.type} sync completed: ${activeJob.successCount} synced, ${activeJob.failCount} failed.`,
+				);
+				queryClient.invalidateQueries(syncStatusQueryOptions);
+			} else if (activeJob.status === "aborted") {
+				toast.info(`${activeJob.type} sync was stopped.`);
+				queryClient.invalidateQueries(syncStatusQueryOptions);
+			} else if (activeJob.status === "failed") {
+				toast.error(`${activeJob.type} sync failed.`);
+				queryClient.invalidateQueries(syncStatusQueryOptions);
 			}
-			queryClient.invalidateQueries(syncStatusQueryOptions);
-		} else if (activeJob.status === "aborted") {
-			toast.info(`${activeJob.type} sync was stopped.`);
-			if (activeJob.errors && activeJob.errors.length > 0) {
-				setDiagnosticErrors((prev) => [...prev, ...activeJob.errors]);
-			}
-			queryClient.invalidateQueries(syncStatusQueryOptions);
-		} else if (activeJob.status === "failed") {
-			toast.error(`${activeJob.type} sync failed.`);
-			if (activeJob.errors && activeJob.errors.length > 0) {
-				setDiagnosticErrors((prev) => [...prev, ...activeJob.errors]);
-			}
-			queryClient.invalidateQueries(syncStatusQueryOptions);
-		} else if (activeJob.status === "running") {
+		}
+
+		if (activeJob.status === "running") {
 			queryClient.invalidateQueries(syncStatusQueryOptions);
 		}
-	}, [activeJob, prevJobState, queryClient]);
+	}, [activeJob, queryClient]);
 
 	// Mutations
 	const loginMutation = useMutation({
@@ -204,60 +210,29 @@ function SyncPage() {
 		},
 	});
 
-	const syncUsersMutation = useMutation({
-		mutationFn: syncUsers,
-		onSuccess: (res) => {
+	const startSyncMutation = useMutation({
+		mutationFn: (type: SyncType) => {
+			if (type === "users") return syncUsers();
+			if (type === "equipments") return syncEquipments();
+			return syncBookings();
+		},
+		onSuccess: (res, type) => {
 			if (!res.started) {
-				toast.info(res.message || "No unsynced users found.");
+				toast.info(res.message || `No unsynced ${type} found.`);
 				return;
 			}
-			toast.info(`Started background sync for ${res.total} users.`);
+			toast.info(`Started background sync for ${res.total} ${type}.`);
+			setIsLogsCleared(false);
+			setMutationError(null);
 			queryClient.invalidateQueries(syncJobStatusQueryOptions);
 		},
-		onError: (err: Error) => {
-			toast.error(err.message || "Failed to start user sync.");
-			setDiagnosticErrors((prev) => [
-				...prev,
-				`User Sync Error: ${err.message}`,
-			]);
-		},
-	});
-
-	const syncEquipmentsMutation = useMutation({
-		mutationFn: syncEquipments,
-		onSuccess: (res) => {
-			if (!res.started) {
-				toast.info(res.message || "No unsynced equipments found.");
-				return;
-			}
-			toast.info(`Started background sync for ${res.total} equipments.`);
-			queryClient.invalidateQueries(syncJobStatusQueryOptions);
-		},
-		onError: (err: Error) => {
-			toast.error(err.message || "Failed to start equipment sync.");
-			setDiagnosticErrors((prev) => [
-				...prev,
-				`Equipment Sync Error: ${err.message}`,
-			]);
-		},
-	});
-
-	const syncBookingsMutation = useMutation({
-		mutationFn: syncBookings,
-		onSuccess: (res) => {
-			if (!res.started) {
-				toast.info(res.message || "No unsynced bookings found.");
-				return;
-			}
-			toast.info(`Started background sync for ${res.total} bookings.`);
-			queryClient.invalidateQueries(syncJobStatusQueryOptions);
-		},
-		onError: (err: Error) => {
-			toast.error(err.message || "Failed to start booking sync.");
-			setDiagnosticErrors((prev) => [
-				...prev,
-				`Booking Sync Error: ${err.message}`,
-			]);
+		onError: (err: Error, type) => {
+			toast.error(err.message || `Failed to start ${type} sync.`);
+			setMutationError({
+				category: type,
+				target: "Start Sync",
+				message: err.message,
+			});
 		},
 	});
 
@@ -301,9 +276,7 @@ function SyncPage() {
 	};
 
 	const isPending =
-		syncUsersMutation.isPending ||
-		syncEquipmentsMutation.isPending ||
-		syncBookingsMutation.isPending ||
+		startSyncMutation.isPending ||
 		cancelSyncMutation.isPending ||
 		clearSyncMutation.isPending;
 
@@ -362,19 +335,28 @@ function SyncPage() {
 								hasUnmappedBookingFieldsState
 							}
 							isPending={isPending}
-							isSyncingUsers={syncUsersMutation.isPending}
-							isSyncingEquipments={
-								syncEquipmentsMutation.isPending
+							isSyncingUsers={
+								startSyncMutation.isPending &&
+								startSyncMutation.variables === "users"
 							}
-							isSyncingBookings={syncBookingsMutation.isPending}
+							isSyncingEquipments={
+								startSyncMutation.isPending &&
+								startSyncMutation.variables === "equipments"
+							}
+							isSyncingBookings={
+								startSyncMutation.isPending &&
+								startSyncMutation.variables === "bookings"
+							}
 							isCancelling={cancelSyncMutation.isPending}
 							isClearing={clearSyncMutation.isPending}
-							onSyncUsers={() => syncUsersMutation.mutate({})}
+							onSyncUsers={() =>
+								startSyncMutation.mutate("users")
+							}
 							onSyncEquipments={() =>
-								syncEquipmentsMutation.mutate({})
+								startSyncMutation.mutate("equipments")
 							}
 							onSyncBookings={() =>
-								syncBookingsMutation.mutate({})
+								startSyncMutation.mutate("bookings")
 							}
 							onCancelSync={() => cancelSyncMutation.mutate({})}
 							onClearJob={() => clearSyncMutation.mutate({})}
@@ -383,8 +365,14 @@ function SyncPage() {
 
 					{/* Diagnostics Log Card */}
 					<DiagnosticLogsCard
-						errors={diagnosticErrors}
-						onClear={() => setDiagnosticErrors([])}
+						errors={[
+							...(isLogsCleared ? [] : activeJob?.errors || []),
+							...(mutationError ? [mutationError] : []),
+						]}
+						onClear={() => {
+							setIsLogsCleared(true);
+							setMutationError(null);
+						}}
 					/>
 
 					{/* Card 3: Mapping Configurations */}

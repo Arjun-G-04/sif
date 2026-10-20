@@ -12,6 +12,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { and, eq, gt, gte, isNotNull, isNull, or, sql } from "drizzle-orm";
 import * as z from "zod";
 import {
+	type SyncJobError,
 	type SyncJobState,
 	type SyncType,
 	cancelSyncJob as cancelSyncJobWorker,
@@ -20,7 +21,7 @@ import {
 	startBackgroundSync,
 } from "./istem-worker";
 
-export type { SyncJobState, SyncType };
+export type { SyncJobError, SyncJobState, SyncType };
 
 // Authenticate server function
 const AuthenticateInput = z.object({

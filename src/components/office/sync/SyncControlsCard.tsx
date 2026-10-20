@@ -247,124 +247,87 @@ export function SyncControlsCard({
 						</div>
 					)}
 
-				{/* Users Sync */}
-				<div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-4">
-					<div>
-						<h4 className="font-semibold text-slate-900">Users</h4>
-						<SyncBlockerWarning reason={userBlocker} />
-					</div>
-					<div className="flex flex-wrap items-center gap-3">
-						<div className="flex items-center gap-2 text-xs">
-							<span className="inline-flex items-center px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/40 font-semibold">
-								{status.syncedUsersCount} synced
-							</span>
-							<span
-								className={cn(
-									"inline-flex items-center px-2 py-1 rounded-md border font-semibold",
-									status.unsyncedUsersCount > 0
-										? "bg-amber-50 text-amber-700 border-amber-200/40"
-										: "bg-slate-50 text-slate-400 border-slate-200/40",
-								)}
-							>
-								{status.unsyncedUsersCount} require sync
-							</span>
+				{/* Sync Sections */}
+				{[
+					{
+						title: "Users",
+						blocker: userBlocker,
+						synced: status.syncedUsersCount,
+						unsynced: status.unsyncedUsersCount,
+						disabled: isUserDisabled,
+						isStarting: isSyncingUsers,
+						isJobActive: isUserJobActive,
+						onSync: onSyncUsers,
+						border: true,
+					},
+					{
+						title: "Equipments",
+						blocker: equipmentBlocker,
+						synced: status.syncedEquipmentsCount,
+						unsynced: status.unsyncedEquipmentsCount,
+						disabled: isEquipmentDisabled,
+						isStarting: isSyncingEquipments,
+						isJobActive: isEquipmentJobActive,
+						onSync: onSyncEquipments,
+						border: true,
+					},
+					{
+						title: "Bookings",
+						blocker: bookingBlocker,
+						synced: status.syncedBookingsCount,
+						unsynced: status.unsyncedBookingsCount,
+						disabled: isBookingDisabled,
+						isStarting: isSyncingBookings,
+						isJobActive: isBookingJobActive,
+						onSync: onSyncBookings,
+						border: false,
+					},
+				].map((section) => (
+					<div
+						key={section.title}
+						className={cn(
+							"flex flex-col sm:flex-row sm:items-center justify-between gap-4",
+							section.border && "border-b border-slate-100 pb-4",
+						)}
+					>
+						<div>
+							<h4 className="font-semibold text-slate-900">
+								{section.title}
+							</h4>
+							<SyncBlockerWarning reason={section.blocker} />
 						</div>
-						<Button
-							onClick={onSyncUsers}
-							disabled={isUserDisabled}
-							className="gap-2"
-						>
-							{(isSyncingUsers || isUserJobActive) && <Spinner />}
-							{isSyncingUsers
-								? "Starting..."
-								: isUserJobActive
-									? "Syncing in background..."
-									: "Sync"}
-						</Button>
-					</div>
-				</div>
-
-				{/* Equipments Sync */}
-				<div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-4">
-					<div>
-						<h4 className="font-semibold text-slate-900">
-							Equipments
-						</h4>
-						<SyncBlockerWarning reason={equipmentBlocker} />
-					</div>
-					<div className="flex flex-wrap items-center gap-3">
-						<div className="flex items-center gap-2 text-xs">
-							<span className="inline-flex items-center px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/40 font-semibold">
-								{status.syncedEquipmentsCount} synced
-							</span>
-							<span
-								className={cn(
-									"inline-flex items-center px-2 py-1 rounded-md border font-semibold",
-									status.unsyncedEquipmentsCount > 0
-										? "bg-amber-50 text-amber-700 border-amber-200/40"
-										: "bg-slate-50 text-slate-400 border-slate-200/40",
-								)}
+						<div className="flex flex-wrap items-center gap-3">
+							<div className="flex items-center gap-2 text-xs">
+								<span className="inline-flex items-center px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/40 font-semibold">
+									{section.synced} synced
+								</span>
+								<span
+									className={cn(
+										"inline-flex items-center px-2 py-1 rounded-md border font-semibold",
+										section.unsynced > 0
+											? "bg-amber-50 text-amber-700 border-amber-200/40"
+											: "bg-slate-50 text-slate-400 border-slate-200/40",
+									)}
+								>
+									{section.unsynced} require sync
+								</span>
+							</div>
+							<Button
+								onClick={section.onSync}
+								disabled={section.disabled}
+								className="gap-2"
 							>
-								{status.unsyncedEquipmentsCount} require sync
-							</span>
+								{(section.isStarting ||
+									section.isJobActive) && <Spinner />}
+								{section.isStarting
+									? "Starting..."
+									: section.isJobActive
+										? "Syncing in background..."
+										: "Sync"}
+							</Button>
 						</div>
-						<Button
-							onClick={onSyncEquipments}
-							disabled={isEquipmentDisabled}
-							className="gap-2"
-						>
-							{(isSyncingEquipments || isEquipmentJobActive) && (
-								<Spinner />
-							)}
-							{isSyncingEquipments
-								? "Starting..."
-								: isEquipmentJobActive
-									? "Syncing in background..."
-									: "Sync"}
-						</Button>
 					</div>
-				</div>
-
-				{/* Bookings Sync */}
-				<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-					<div>
-						<h4 className="font-semibold text-slate-900">
-							Bookings
-						</h4>
-						<SyncBlockerWarning reason={bookingBlocker} />
-					</div>
-					<div className="flex flex-wrap items-center gap-3">
-						<div className="flex items-center gap-2 text-xs">
-							<span className="inline-flex items-center px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/40 font-semibold">
-								{status.syncedBookingsCount} synced
-							</span>
-							<span
-								className={cn(
-									"inline-flex items-center px-2 py-1 rounded-md border font-semibold",
-									status.unsyncedBookingsCount > 0
-										? "bg-amber-50 text-amber-700 border-amber-200/40"
-										: "bg-slate-50 text-slate-400 border-slate-200/40",
-								)}
-							>
-								{status.unsyncedBookingsCount} require sync
-							</span>
-						</div>
-						<Button
-							onClick={onSyncBookings}
-							disabled={isBookingDisabled}
-							className="gap-2"
-						>
-							{(isSyncingBookings || isBookingJobActive) && (
-								<Spinner />
-							)}
-							{isSyncingBookings
-								? "Starting..."
-								: isBookingJobActive
-									? "Syncing in background..."
-									: "Sync"}
-						</Button>
-					</div>
-				</div>
+				))}
 			</CardContent>
 		</Card>
 	);

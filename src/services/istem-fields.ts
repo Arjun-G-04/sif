@@ -168,7 +168,7 @@ export const BOOKING_FIELD_DEFS: FieldDescriptor<BookingSyncRow>[] = [
 	{ key: "consumables_provided_by", fallback: "test" },
 ];
 
-export function resolveFieldValue(
+function resolveFieldValue(
 	fieldResponses: Array<{ fieldId: number; value: string | null }>,
 	mapping: Record<string, string>,
 	defaults: Record<string, string>,
