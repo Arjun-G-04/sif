@@ -12,6 +12,9 @@ import { SyncControlsCard } from "@/components/office/sync/SyncControlsCard";
 import { requireAdmin } from "@/lib/auth";
 import {
 	authenticateIstem,
+	cancelSyncJob,
+	clearSyncJob,
+	getSyncJobStatus,
 	getSyncStatus,
 	saveIstemConfig,
 	syncBookings,
@@ -33,11 +36,23 @@ export const syncStatusQueryOptions = queryOptions({
 	queryFn: () => getSyncStatus(),
 });
 
+export const syncJobStatusQueryOptions = queryOptions({
+	queryKey: ["istem-sync-job-status"],
+	queryFn: () => getSyncJobStatus(),
+	refetchInterval: (query) => {
+		const data = query.state.data;
+		return data?.status === "running" ? 1500 : false;
+	},
+});
+
 export const Route = createFileRoute("/office/sync/")({
 	component: SyncPage,
 	loader: async ({ context }) => {
 		const user = await requireAdmin();
-		await context.queryClient.ensureQueryData(syncStatusQueryOptions);
+		await Promise.all([
+			context.queryClient.ensureQueryData(syncStatusQueryOptions),
+			context.queryClient.ensureQueryData(syncJobStatusQueryOptions),
+		]);
 		return user;
 	},
 });
@@ -45,6 +60,7 @@ export const Route = createFileRoute("/office/sync/")({
 function SyncPage() {
 	const user = Route.useLoaderData();
 	const { data: status } = useSuspenseQuery(syncStatusQueryOptions);
+	const { data: activeJob } = useSuspenseQuery(syncJobStatusQueryOptions);
 	const queryClient = useQueryClient();
 
 	// Credentials state
@@ -67,6 +83,7 @@ function SyncPage() {
 	// Error Logs state
 	const [diagnosticErrors, setDiagnosticErrors] = useState<string[]>([]);
 	const [isInitialized, setIsInitialized] = useState(false);
+	const [prevJobState, setPrevJobState] = useState<string | null>(null);
 
 	// Check if booking mappings changed compared to original database value in each equipment
 	const isBookingMappingsChanged = () => {
@@ -129,6 +146,39 @@ function SyncPage() {
 		}
 	}, [status, isInitialized, isConfigChanged, selectedEquipmentId]);
 
+	// Background job status listener and toast alerts
+	useEffect(() => {
+		if (!activeJob) return;
+
+		const key = `${activeJob.id}:${activeJob.status}:${activeJob.completedAt || ""}`;
+		if (key === prevJobState) return;
+		setPrevJobState(key);
+
+		if (activeJob.status === "completed") {
+			toast.success(
+				`${activeJob.type} sync completed: ${activeJob.successCount} synced, ${activeJob.failCount} failed.`,
+			);
+			if (activeJob.errors && activeJob.errors.length > 0) {
+				setDiagnosticErrors((prev) => [...prev, ...activeJob.errors]);
+			}
+			queryClient.invalidateQueries(syncStatusQueryOptions);
+		} else if (activeJob.status === "aborted") {
+			toast.info(`${activeJob.type} sync was stopped.`);
+			if (activeJob.errors && activeJob.errors.length > 0) {
+				setDiagnosticErrors((prev) => [...prev, ...activeJob.errors]);
+			}
+			queryClient.invalidateQueries(syncStatusQueryOptions);
+		} else if (activeJob.status === "failed") {
+			toast.error(`${activeJob.type} sync failed.`);
+			if (activeJob.errors && activeJob.errors.length > 0) {
+				setDiagnosticErrors((prev) => [...prev, ...activeJob.errors]);
+			}
+			queryClient.invalidateQueries(syncStatusQueryOptions);
+		} else if (activeJob.status === "running") {
+			queryClient.invalidateQueries(syncStatusQueryOptions);
+		}
+	}, [activeJob, prevJobState, queryClient]);
+
 	// Mutations
 	const loginMutation = useMutation({
 		mutationFn: authenticateIstem,
@@ -156,23 +206,16 @@ function SyncPage() {
 
 	const syncUsersMutation = useMutation({
 		mutationFn: syncUsers,
-		onMutate: () => {
-			setDiagnosticErrors([]);
-		},
 		onSuccess: (res) => {
-			toast.success(
-				`User Sync Complete: ${res.successCount} synced, ${res.failCount} failed.`,
-			);
-			if (res.errors && res.errors.length > 0) {
-				setDiagnosticErrors((prev) => [...prev, ...res.errors]);
-				toast.error(
-					`${res.failCount} errors occurred. See Diagnostics Log.`,
-				);
+			if (!res.started) {
+				toast.info(res.message || "No unsynced users found.");
+				return;
 			}
-			queryClient.invalidateQueries(syncStatusQueryOptions);
+			toast.info(`Started background sync for ${res.total} users.`);
+			queryClient.invalidateQueries(syncJobStatusQueryOptions);
 		},
 		onError: (err: Error) => {
-			toast.error(err.message || "Failed to sync users.");
+			toast.error(err.message || "Failed to start user sync.");
 			setDiagnosticErrors((prev) => [
 				...prev,
 				`User Sync Error: ${err.message}`,
@@ -182,23 +225,16 @@ function SyncPage() {
 
 	const syncEquipmentsMutation = useMutation({
 		mutationFn: syncEquipments,
-		onMutate: () => {
-			setDiagnosticErrors([]);
-		},
 		onSuccess: (res) => {
-			toast.success(
-				`Equipment Sync Complete: ${res.successCount} synced, ${res.failCount} failed.`,
-			);
-			if (res.errors && res.errors.length > 0) {
-				setDiagnosticErrors((prev) => [...prev, ...res.errors]);
-				toast.error(
-					`${res.failCount} errors occurred. See Diagnostics Log.`,
-				);
+			if (!res.started) {
+				toast.info(res.message || "No unsynced equipments found.");
+				return;
 			}
-			queryClient.invalidateQueries(syncStatusQueryOptions);
+			toast.info(`Started background sync for ${res.total} equipments.`);
+			queryClient.invalidateQueries(syncJobStatusQueryOptions);
 		},
 		onError: (err: Error) => {
-			toast.error(err.message || "Failed to sync equipments.");
+			toast.error(err.message || "Failed to start equipment sync.");
 			setDiagnosticErrors((prev) => [
 				...prev,
 				`Equipment Sync Error: ${err.message}`,
@@ -208,27 +244,41 @@ function SyncPage() {
 
 	const syncBookingsMutation = useMutation({
 		mutationFn: syncBookings,
-		onMutate: () => {
-			setDiagnosticErrors([]);
-		},
 		onSuccess: (res) => {
-			toast.success(
-				`Booking Sync Complete: ${res.successCount} synced, ${res.failCount} failed.`,
-			);
-			if (res.errors && res.errors.length > 0) {
-				setDiagnosticErrors((prev) => [...prev, ...res.errors]);
-				toast.error(
-					`${res.failCount} errors occurred. See Diagnostics Log.`,
-				);
+			if (!res.started) {
+				toast.info(res.message || "No unsynced bookings found.");
+				return;
 			}
-			queryClient.invalidateQueries(syncStatusQueryOptions);
+			toast.info(`Started background sync for ${res.total} bookings.`);
+			queryClient.invalidateQueries(syncJobStatusQueryOptions);
 		},
 		onError: (err: Error) => {
-			toast.error(err.message || "Failed to sync bookings.");
+			toast.error(err.message || "Failed to start booking sync.");
 			setDiagnosticErrors((prev) => [
 				...prev,
 				`Booking Sync Error: ${err.message}`,
 			]);
+		},
+	});
+
+	const cancelSyncMutation = useMutation({
+		mutationFn: cancelSyncJob,
+		onSuccess: (res) => {
+			if (res.cancelled) {
+				toast.info("Stopping sync operation...");
+			}
+			queryClient.invalidateQueries(syncJobStatusQueryOptions);
+			queryClient.invalidateQueries(syncStatusQueryOptions);
+		},
+		onError: (err: Error) => {
+			toast.error(err.message || "Failed to stop sync.");
+		},
+	});
+
+	const clearSyncMutation = useMutation({
+		mutationFn: clearSyncJob,
+		onSuccess: () => {
+			queryClient.invalidateQueries(syncJobStatusQueryOptions);
 		},
 	});
 
@@ -253,7 +303,9 @@ function SyncPage() {
 	const isPending =
 		syncUsersMutation.isPending ||
 		syncEquipmentsMutation.isPending ||
-		syncBookingsMutation.isPending;
+		syncBookingsMutation.isPending ||
+		cancelSyncMutation.isPending ||
+		clearSyncMutation.isPending;
 
 	// Granular unmapped field checks
 	const hasUnmappedUserFields = hasUnmappedFields(
@@ -280,7 +332,7 @@ function SyncPage() {
 						</h2>
 						<p className="text-slate-500">
 							Manage I-STEM API authentication, field mappings,
-							static defaults, and manual sync operations.
+							static defaults, and background sync operations.
 						</p>
 					</div>
 
@@ -300,6 +352,7 @@ function SyncPage() {
 					{status.isAuthenticated && (
 						<SyncControlsCard
 							status={status}
+							activeJob={activeJob}
 							isConfigChanged={isConfigChanged}
 							hasUnmappedUserFields={hasUnmappedUserFields}
 							hasUnmappedEquipmentFields={
@@ -314,6 +367,8 @@ function SyncPage() {
 								syncEquipmentsMutation.isPending
 							}
 							isSyncingBookings={syncBookingsMutation.isPending}
+							isCancelling={cancelSyncMutation.isPending}
+							isClearing={clearSyncMutation.isPending}
 							onSyncUsers={() => syncUsersMutation.mutate({})}
 							onSyncEquipments={() =>
 								syncEquipmentsMutation.mutate({})
@@ -321,6 +376,8 @@ function SyncPage() {
 							onSyncBookings={() =>
 								syncBookingsMutation.mutate({})
 							}
+							onCancelSync={() => cancelSyncMutation.mutate({})}
+							onClearJob={() => clearSyncMutation.mutate({})}
 						/>
 					)}
 
