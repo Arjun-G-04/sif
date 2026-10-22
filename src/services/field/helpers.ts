@@ -40,6 +40,7 @@ export const getAlternateEmailFieldId = createServerOnlyFn(
 export const getAlternatePhoneFieldId = createServerOnlyFn(
 	(): number | null => {
 		const raw = (
+			process.env.PHONE_NO_FIELD_ID ||
 			process.env.PHONE_NO_ID ||
 			process.env.PHONE_FIELD_ID ||
 			process.env.ALTERNATE_PHONE_FIELD_ID
