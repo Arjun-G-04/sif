@@ -8,6 +8,7 @@ import { nitro } from 'nitro/vite'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
+  Object.assign(process.env, env)
   const base = env.VITE_BASE_URL ?? ''
 
   return {

@@ -105,7 +105,7 @@ export function EmailPhoneStep({ onComplete }: EmailPhoneStepProps) {
 		<div className="space-y-6">
 			{/* Email Verification */}
 			<Field>
-				<FieldLabel htmlFor="email">
+				<FieldLabel htmlFor={emailId}>
 					<div className="flex items-center gap-2">
 						<Mail className="w-4 h-4 text-slate-400" />
 						Email Address
