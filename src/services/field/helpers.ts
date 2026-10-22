@@ -24,43 +24,47 @@ import {
 } from "../../db/schema";
 import type { FieldEntry } from "./types";
 
-export const getAlternateEmailFieldId = (): number | null => {
-	const raw = (
-		process.env.EMAIL_FIELD_ID || process.env.ALTERNATE_EMAIL_FIELD_ID
-	)
-		?.replace(/['"]/g, "")
-		.trim();
-	if (!raw) return null;
-	const id = Number.parseInt(raw, 10);
-	return Number.isNaN(id) ? null : id;
-};
+export const getAlternateEmailFieldId = createServerOnlyFn(
+	(): number | null => {
+		const raw = (
+			process.env.EMAIL_FIELD_ID || process.env.ALTERNATE_EMAIL_FIELD_ID
+		)
+			?.replace(/['"]/g, "")
+			.trim();
+		if (!raw) return null;
+		const id = Number.parseInt(raw, 10);
+		return Number.isNaN(id) ? null : id;
+	},
+);
 
-export const getAlternatePhoneFieldId = (): number | null => {
-	const raw = (
-		process.env.PHONE_NO_ID ||
-		process.env.PHONE_FIELD_ID ||
-		process.env.ALTERNATE_PHONE_FIELD_ID
-	)
-		?.replace(/['"]/g, "")
-		.trim();
-	if (!raw) return null;
-	const id = Number.parseInt(raw, 10);
-	return Number.isNaN(id) ? null : id;
-};
+export const getAlternatePhoneFieldId = createServerOnlyFn(
+	(): number | null => {
+		const raw = (
+			process.env.PHONE_NO_ID ||
+			process.env.PHONE_FIELD_ID ||
+			process.env.ALTERNATE_PHONE_FIELD_ID
+		)
+			?.replace(/['"]/g, "")
+			.trim();
+		if (!raw) return null;
+		const id = Number.parseInt(raw, 10);
+		return Number.isNaN(id) ? null : id;
+	},
+);
 
-export const isEmailField = (fieldId: number): boolean => {
+export const isEmailField = createServerOnlyFn((fieldId: number): boolean => {
 	const targetId = getAlternateEmailFieldId();
 	return targetId !== null && fieldId === targetId;
-};
+});
 
-export const isPhoneField = (fieldId: number): boolean => {
+export const isPhoneField = createServerOnlyFn((fieldId: number): boolean => {
 	const targetId = getAlternatePhoneFieldId();
 	return targetId !== null && fieldId === targetId;
-};
+});
 
-export const isUniqueField = (fieldId: number): boolean => {
+export const isUniqueField = createServerOnlyFn((fieldId: number): boolean => {
 	return isEmailField(fieldId) || isPhoneField(fieldId);
-};
+});
 
 export const checkFieldUniqueness = createServerOnlyFn(
 	async (

@@ -3,6 +3,7 @@ import { hash } from "bcrypt";
 import { and, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
 import * as z from "zod";
 import { sendEmail } from "@/lib/email";
+import { db } from "../db";
 import {
 	fieldResponses,
 	otpVerifications,
