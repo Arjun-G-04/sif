@@ -1,5 +1,15 @@
 import { createServerOnlyFn } from "@tanstack/react-start";
-import { aliasedTable, and, eq, inArray, isNull, or } from "drizzle-orm";
+import {
+	aliasedTable,
+	and,
+	eq,
+	ilike,
+	inArray,
+	isNull,
+	ne,
+	or,
+	sql,
+} from "drizzle-orm";
 import { saveUploadedFile } from "@/lib/files";
 import { db } from "../../db";
 import {
@@ -9,14 +19,178 @@ import {
 	fieldResponses,
 	fields,
 	type fieldStage,
+	registrations,
 	users,
 } from "../../db/schema";
 import type { FieldEntry } from "./types";
+
+export const getAlternateEmailFieldId = createServerOnlyFn(
+	(): number | null => {
+		const raw = (
+			process.env.EMAIL_FIELD_ID || process.env.ALTERNATE_EMAIL_FIELD_ID
+		)
+			?.replace(/['"]/g, "")
+			.trim();
+		if (!raw) return null;
+		const id = Number.parseInt(raw, 10);
+		return Number.isNaN(id) ? null : id;
+	},
+);
+
+export const getAlternatePhoneFieldId = createServerOnlyFn(
+	(): number | null => {
+		const raw = (
+			process.env.PHONE_NO_FIELD_ID ||
+			process.env.PHONE_NO_ID ||
+			process.env.PHONE_FIELD_ID ||
+			process.env.ALTERNATE_PHONE_FIELD_ID
+		)
+			?.replace(/['"]/g, "")
+			.trim();
+		if (!raw) return null;
+		const id = Number.parseInt(raw, 10);
+		return Number.isNaN(id) ? null : id;
+	},
+);
+
+export const isEmailField = createServerOnlyFn((fieldId: number): boolean => {
+	const targetId = getAlternateEmailFieldId();
+	return targetId !== null && fieldId === targetId;
+});
+
+export const isPhoneField = createServerOnlyFn((fieldId: number): boolean => {
+	const targetId = getAlternatePhoneFieldId();
+	return targetId !== null && fieldId === targetId;
+});
+
+export const isUniqueField = createServerOnlyFn((fieldId: number): boolean => {
+	return isEmailField(fieldId) || isPhoneField(fieldId);
+});
+
+export const checkFieldUniqueness = createServerOnlyFn(
+	async (
+		fieldId: number,
+		value: string,
+		fieldName: string,
+		excludeRegId?: number,
+	) => {
+		const trimmed = value.trim();
+		if (!trimmed) return;
+
+		const isEmail = isEmailField(fieldId);
+		const isPhone = isPhoneField(fieldId);
+
+		// 1. Check uniqueness within fieldResponses (across active or pending registrations)
+		const cleanPhone = isPhone ? trimmed.replace(/\D/g, "") : "";
+		const phoneCondition =
+			cleanPhone.length >= 10
+				? or(
+						sql`RIGHT(regexp_replace(${fieldResponses.value}, '[^0-9]', '', 'g'), 10) = ${cleanPhone.slice(-10)}`,
+						eq(fieldResponses.value, cleanPhone),
+						eq(fieldResponses.value, trimmed),
+					)
+				: eq(fieldResponses.value, trimmed);
+
+		const [existingResponse] = await db
+			.select({ id: fieldResponses.id })
+			.from(fieldResponses)
+			.innerJoin(
+				registrations,
+				eq(fieldResponses.entityId, registrations.id),
+			)
+			.where(
+				and(
+					eq(fieldResponses.entityType, "registration"),
+					eq(fieldResponses.fieldId, fieldId),
+					isPhone
+						? phoneCondition
+						: ilike(fieldResponses.value, trimmed),
+					or(
+						isNull(registrations.accepted),
+						eq(registrations.accepted, true),
+					),
+					excludeRegId
+						? ne(fieldResponses.entityId, excludeRegId)
+						: undefined,
+				),
+			)
+			.limit(1);
+
+		if (existingResponse) {
+			throw new Error(
+				`Field "${fieldName}" with value "${trimmed}" is already registered.`,
+			);
+		}
+
+		// 2. Cross-uniqueness check against registrations table (primary contacts)
+		if (isEmail) {
+			// Check if this alternate email matches someone else's primary email
+			const [existingPrimaryEmail] = await db
+				.select({ id: registrations.id })
+				.from(registrations)
+				.where(
+					and(
+						ilike(registrations.email, trimmed),
+						or(
+							isNull(registrations.accepted),
+							eq(registrations.accepted, true),
+						),
+						excludeRegId
+							? ne(registrations.id, excludeRegId)
+							: undefined,
+					),
+				)
+				.limit(1);
+
+			if (existingPrimaryEmail) {
+				throw new Error(
+					`"${trimmed}" is already registered as a primary email.`,
+				);
+			}
+		}
+
+		if (isPhone) {
+			// Check if this alternate phone matches someone else's primary phone
+			const primaryPhoneCondition =
+				cleanPhone.length >= 10
+					? or(
+							sql`RIGHT(regexp_replace(${registrations.phone}, '[^0-9]', '', 'g'), 10) = ${cleanPhone.slice(-10)}`,
+							eq(registrations.phone, cleanPhone),
+							eq(registrations.phone, trimmed),
+						)
+					: eq(registrations.phone, trimmed);
+
+			const [existingPrimaryPhone] = await db
+				.select({ id: registrations.id })
+				.from(registrations)
+				.where(
+					and(
+						primaryPhoneCondition,
+						or(
+							isNull(registrations.accepted),
+							eq(registrations.accepted, true),
+						),
+						excludeRegId
+							? ne(registrations.id, excludeRegId)
+							: undefined,
+					),
+				)
+				.limit(1);
+
+			if (existingPrimaryPhone) {
+				throw new Error(
+					`"${trimmed}" is already registered as a primary phone number.`,
+				);
+			}
+		}
+	},
+);
 
 export interface ParseFieldResponsesOptions {
 	skipKeys?: string[];
 	stage?: (typeof fieldStage.enumValues)[number];
 	userId?: number;
+	registrationId?: number;
 }
 
 export const validateCharCount = createServerOnlyFn(
@@ -320,6 +494,36 @@ export const parseFieldResponses = createServerOnlyFn(
 							});
 						}
 					}
+				}
+			}
+		}
+
+		// Check uniqueness for email and phone fields in registration
+		if (type === "registration") {
+			const seenValues = new Set<string>();
+			for (const entry of fieldEntries) {
+				if (!entry.value || typeof entry.value !== "string") continue;
+				const field = fieldIdToField.get(String(entry.fieldId));
+				if (field && isUniqueField(field.id)) {
+					const normalized = isEmailField(field.id)
+						? entry.value.trim().toLowerCase()
+						: isPhoneField(field.id)
+							? entry.value.replace(/\D/g, "").slice(-10) ||
+								entry.value.trim()
+							: entry.value.trim();
+					if (seenValues.has(normalized)) {
+						throw new Error(
+							`Duplicate value "${entry.value.trim()}" entered for "${field.name}".`,
+						);
+					}
+					seenValues.add(normalized);
+
+					await checkFieldUniqueness(
+						entry.fieldId,
+						entry.value,
+						field.name,
+						options.registrationId,
+					);
 				}
 			}
 		}

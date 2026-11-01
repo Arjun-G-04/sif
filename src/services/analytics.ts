@@ -21,9 +21,13 @@ export const getAnalyticsData = createServerFn({ method: "GET" }).handler(
 			.select({
 				id: equipments.id,
 				name: equipments.name,
+				code: equipments.code,
+				departmentLab: equipments.departmentLab,
+				usageRate: equipments.usageRate,
 			})
 			.from(equipments)
-			.where(eq(equipments.active, true));
+			.where(eq(equipments.active, true))
+			.orderBy(equipments.name);
 
 		// Fetch all completed bookings with price
 		const allBookings = await db

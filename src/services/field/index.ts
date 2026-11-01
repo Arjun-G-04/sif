@@ -32,4 +32,10 @@ export {
 	getFieldResponses,
 	validateCharCount,
 	type ParseFieldResponsesOptions,
+	isUniqueField,
+	isEmailField,
+	isPhoneField,
+	getAlternateEmailFieldId,
+	getAlternatePhoneFieldId,
+	checkFieldUniqueness,
 } from "./helpers";

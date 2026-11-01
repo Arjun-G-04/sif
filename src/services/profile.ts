@@ -4,7 +4,12 @@ import { db } from "../db";
 import { fieldResponses, registrations, users } from "../db/schema";
 import { requireUser } from "../lib/auth";
 import { saveUploadedFile } from "../lib/files";
-import { getFieldResponses, validateCharCount } from "./field/helpers";
+import {
+	checkFieldUniqueness,
+	getFieldResponses,
+	isUniqueField,
+	validateCharCount,
+} from "./field/helpers";
 import { fetchFieldsFromDb } from "./field/queries";
 import type { Field } from "./field/types";
 
@@ -252,6 +257,19 @@ export const updateUserProfile = createServerFn({ method: "POST" })
 				if (!submitted || !submitted.value) {
 					throw new Error(`Field "${field.name}" is required.`);
 				}
+			}
+		}
+
+		// 5.5 Check uniqueness for dynamic registration fields like email or phone
+		for (const item of updatesToPerform) {
+			const field = fieldMap.get(item.fieldId);
+			if (field && isUniqueField(field.id)) {
+				await checkFieldUniqueness(
+					item.fieldId,
+					item.value,
+					field.name,
+					regId,
+				);
 			}
 		}
 
